@@ -1,0 +1,32 @@
+# ── Configuración local de herramientas y editores ──
+.claude/
+.vscode/
+.idea/
+
+# ── Variables de entorno y secretos ──
+.env
+.env.*
+*.key
+
+# ── Extensión empaquetada ──
+# Al empaquetar desde chrome://extensions se genera un .pem: es la clave
+# privada que firma la extensión y nunca debe subirse.
+*.pem
+*.crx
+*.zip
+
+# ── Exportaciones y listas de usuarios ──
+# Contienen usernames de terceros: no van al repo.
+*.csv
+ig-seguidos/
+listas/
+usuarios*.txt
+
+# ── Dependencias y logs ──
+node_modules/
+*.log
+
+# ── Sistema operativo ──
+.DS_Store
+Thumbs.db
+desktop.ini

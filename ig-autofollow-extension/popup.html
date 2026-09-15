@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IG Auto-Follow Bot</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 360px;
+    min-height: 520px;
+    background: #111;
+    color: #f0f0f0;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #2a2a3e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-title span.icon { font-size: 18px; }
+  .badge-version {
+    font-size: 10px;
+    background: #0a84ff22;
+    color: #0a84ff;
+    border: 1px solid #0a84ff44;
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    background: #1a1a1a;
+    border-bottom: 1px solid #222;
+  }
+  .tab {
+    flex: 1;
+    padding: 9px 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .tab.active {
+    color: #0a84ff;
+    border-bottom-color: #0a84ff;
+    background: #0a84ff08;
+  }
+  .tab:hover:not(.active) { color: #999; background: #1e1e1e; }
+
+  /* ── Panels ── */
+  .panel { display: none; padding: 14px 14px 10px; }
+  .panel.active { display: block; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid #2a2a2a;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #444;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .status-dot.running { background: #34c759; box-shadow: 0 0 6px #34c75988; animation: pulse 1.5s infinite; }
+  .status-dot.stopped { background: #555; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .status-text { font-size: 12px; color: #aaa; flex: 1; }
+  .status-user { font-size: 11px; color: #0a84ff; font-weight: 600; }
+
+  /* ── Stat chips ── */
+  .stats {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .stat {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 7px 6px 5px;
+    text-align: center;
+  }
+  .stat-num { font-size: 18px; font-weight: 700; display: block; }
+  .stat-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat.green .stat-num { color: #34c759; }
+  .stat.orange .stat-num { color: #ff9500; }
+  .stat.red .stat-num { color: #ff453a; }
+  .stat.blue .stat-num { color: #0a84ff; }
+  .stat.violet .stat-num { color: #5856d6; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 8px;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-start  { background: #0a84ff; color: #fff; }
+  .btn-start:hover { background: #1591ff; }
+  .btn-stop   { background: #ff3b30; color: #fff; }
+  .btn-stop:hover { background: #ff5145; }
+  .btn-secondary { background: #2a2a2a; color: #ccc; }
+  .btn-secondary:hover { background: #333; }
+  .btn-purple { background: #5856d6; color: #fff; }
+  .btn-purple:hover { background: #6a68e0; }
+  .btn-green  { background: #34c759; color: #fff; }
+  .btn-green:hover { background: #3fd965; }
+  .btn-sm {
+    display: inline-block;
+    width: auto;
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 0;
+  }
+  .btn-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .btn-row .btn { margin-bottom: 0; }
+
+  /* ── Form ── */
+  label { display: block; font-size: 11px; color: #888; margin-bottom: 4px; margin-top: 10px; }
+  label:first-child, .label-top { margin-top: 0; }
+
+  textarea, input[type="number"], input[type="text"] {
+    width: 100%;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    color: #f0f0f0;
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus, input:focus { border-color: #0a84ff66; }
+  textarea { line-height: 1.5; }
+
+  .input-row { display: flex; gap: 8px; }
+  .input-row > div { flex: 1; }
+
+  /* ── Checkbox ── */
+  .check-label {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #ccc;
+    cursor: pointer;
+    margin-top: 10px !important;
+  }
+  input[type="checkbox"] {
+    accent-color: #0a84ff;
+    width: 14px;
+    height: 14px;
+    width: auto;
+  }
+
+  /* ── Lista pendiente ── */
+  .lista-info {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .lista-info-text { font-size: 12px; color: #aaa; }
+  .lista-info-count { font-size: 20px; font-weight: 700; color: #0a84ff; }
+
+  /* ── Log ── */
+  #logBox {
+    background: #000;
+    border: 1px solid #222;
+    border-radius: 7px;
+    padding: 8px 10px;
+    height: 110px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .log-entry { display: block; margin-bottom: 1px; }
+
+  /* ── Section divider ── */
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 14px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #222;
+  }
+
+  /* ── Warning box ── */
+  .warning {
+    background: #2a1a00;
+    border: 1px solid #5a3c00;
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: #cc9900;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  /* ── Historial listas ── */
+  .lista-item {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 7px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lista-item-name { flex: 1; font-size: 12px; color: #ccc; font-family: monospace; }
+  .lista-item-count { font-size: 11px; color: #666; }
+  .lista-item-name.abrir-perfil { cursor: pointer; }
+  .lista-item-name.abrir-perfil:hover { text-decoration: underline; filter: brightness(1.35); }
+  .lista-item-name.visitado { opacity: 0.4; text-decoration: line-through; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #111; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  .mt8 { margin-top: 8px; }
+  .mb0 { margin-bottom: 0 !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <span class="icon">📲</span>
+    IG Auto-Follow Bot
+  </div>
+  <span class="badge-version">v1.0</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="main">▶ Bot</div>
+  <div class="tab" data-tab="lista">📋 Lista</div>
+  <div class="tab" data-tab="config">⚙️ Config</div>
+  <div class="tab" data-tab="historial">📊 Historial</div>
+</div>
+
+<!-- ── TAB: BOT PRINCIPAL ── -->
+<div class="panel active" id="tab-main">
+
+  <div class="status-bar">
+    <div class="status-dot stopped" id="statusDot"></div>
+    <div class="status-text" id="statusText">Detenido</div>
+    <div class="status-user" id="statusUser"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat green">
+      <span class="stat-num" id="statSeguidos">0</span>
+      <span class="stat-label">Seguidos</span>
+    </div>
+    <div class="stat orange">
+      <span class="stat-num" id="statSaltados">0</span>
+      <span class="stat-label">Saltados</span>
+    </div>
+    <div class="stat red">
+      <span class="stat-num" id="statErrores">0</span>
+      <span class="stat-label">Errores</span>
+    </div>
+    <div class="stat blue">
+      <span class="stat-num" id="statPendientes">0</span>
+      <span class="stat-label">Pendientes</span>
+    </div>
+    <div class="stat violet">
+      <span class="stat-num" id="statRevision">0</span>
+      <span class="stat-label">Revisión</span>
+    </div>
+  </div>
+
+  <div class="lista-info">
+    <span class="lista-info-text">Usuarios en cola</span>
+    <span class="lista-info-count" id="infoCount">0</span>
+  </div>
+
+  <button class="btn btn-start" id="btnStart">▶ INICIAR SEGUIMIENTO</button>
+
+  <div class="section-title">Log en tiempo real</div>
+  <div id="logBox">
+    <span class="log-entry" style="color:#444">Esperando...</span>
+  </div>
+
+</div>
+
+<!-- ── TAB: LISTA ── -->
+<div class="panel" id="tab-lista">
+
+  <div class="warning">
+    ⚠️ La lista se guarda permanentemente. El bot la va consumiendo y no la borra si se cierra o recarga.
+  </div>
+
+  <label class="label-top">Agregar usuarios (uno por línea, con o sin @):</label>
+  <textarea id="inputLista" rows="6" placeholder="usuario1&#10;@usuario2&#10;usuario3, usuario4"></textarea>
+
+  <div class="btn-row mt8">
+    <button class="btn btn-purple btn-sm" id="btnAgregar">➕ Agregar a la cola</button>
+    <button class="btn btn-secondary btn-sm" id="btnImportar">📂 Importar .txt</button>
+    <input type="file" id="inputArchivo" accept=".txt,.csv" style="display:none">
+  </div>
+
+  <div class="section-title">Cola actual</div>
+
+  <div id="colaActual" style="max-height:130px; overflow-y:auto; margin-bottom:8px;">
+    <span style="color:#444; font-size:11px;">Vacía.</span>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary btn-sm" id="btnCopiarCola">Copiar cola</button>
+    <button class="btn btn-stop btn-sm" id="btnLimpiarCola">🗑 Limpiar cola</button>
+  </div>
+
+</div>
+
+<!-- ── TAB: CONFIG ── -->
+<div class="panel" id="tab-config">
+
+  <div class="warning">
+    Pausas largas = menor riesgo de bloqueo. Recomendamos mínimo 20s / máximo 40s.
+  </div>
+
+  <div class="input-row">
+    <div>
+      <label>Pausa mínima (seg)</label>
+      <input type="number" id="cfgPausaMin" value="20" min="5" max="300">
+    </div>
+    <div>
+      <label>Pausa máxima (seg)</label>
+      <input type="number" id="cfgPausaMax" value="35" min="5" max="600">
+    </div>
+  </div>
+
+  <label class="check-label mt8">
+    <input type="checkbox" id="cfgSaltarSeguidos" checked>
+    Saltar usuarios que ya seguís
+  </label>
+
+  <div class="section-title">Filtro Córdoba</div>
+
+  <label class="check-label" style="margin-top:0 !important;">
+    <input type="checkbox" id="cfgFiltroActivo" checked>
+    Seguir solo perfiles con señales de Córdoba
+  </label>
+
+  <label class="check-label">
+    <input type="checkbox" id="cfgFiltroInterior">
+    Incluir interior / Gran Córdoba (no solo capital)
+  </label>
+
+  <p style="font-size:11px; color:#666; line-height:1.6; margin-top:10px;">
+    Ya reconoce Córdoba, cba, 351, UNC, UTN/FRC, UPC, UCC, UBP, Siglo 21, IUA, ISPC,
+    FAMAF, FCEFyN, FFyH, FCM, FCQ, FCC, FAUD, FCS, FCE, FCA, Lenguas, Odontología,
+    Monserrat, Manuel Belgrano y Carbó — en cualquier tipografía (𝘊𝘣𝘢, ᴄʙᴀ, Ｃｂａ).
+  </p>
+
+  <label>Siglas o palabras extra (una por línea)</label>
+  <textarea id="cfgFiltroExtra" rows="3" placeholder="ipem&#10;nueva cordoba&#10;cordobita*"></textarea>
+
+  <label>Palabras prohibidas (una por línea)</label>
+  <textarea id="cfgFiltroProhibidas" rows="2" placeholder="dj&#10;onlyfans"></textarea>
+
+  <p style="font-size:10px; color:#555; line-height:1.5; margin-top:6px;">
+    Se busca la palabra completa. Poné <code>*</code> al final para que valga cualquier
+    terminación (ej. <code>cordobes*</code> matchea "cordobesa").
+  </p>
+
+  <div class="section-title">Filtro locales y negocios</div>
+
+  <label class="check-label" style="margin-top:0 !important;">
+    <input type="checkbox" id="cfgNegocioActivo" checked>
+    Saltar locales, boliches y cuentas comerciales
+  </label>
+
+  <p style="font-size:11px; color:#666; line-height:1.6; margin-top:10px;">
+    Detecta boliches, bares, restaurantes, tiendas y rubros comerciales, más los
+    botones que Instagram solo muestra en cuentas de negocio
+    ("Cómo llegar", "Ver tienda", "Reservar"). Se evalúa antes que el filtro de
+    Córdoba, así que un boliche cordobés igual se saltea.
+  </p>
+
+  <label>Rubros extra a saltar (uno por línea)</label>
+  <textarea id="cfgNegocioExtra" rows="2" placeholder="agencia&#10;inmobiliaria"></textarea>
+
+  <div class="section-title">Filtro edad</div>
+
+  <label class="check-label" style="margin-top:0 !important;">
+    <input type="checkbox" id="cfgEdadActiva" checked>
+    Filtrar por edad deducida del texto
+  </label>
+
+  <div class="input-row mt8">
+    <div>
+      <label>Edad mínima</label>
+      <input type="number" id="cfgEdadMin" value="18" min="13" max="99">
+    </div>
+    <div>
+      <label>Edad máxima</label>
+      <input type="number" id="cfgEdadMax" value="99" min="13" max="99">
+    </div>
+  </div>
+
+  <label class="check-label">
+    <input type="checkbox" id="cfgEdadExigir">
+    Mandar a revisión si no se puede deducir la edad
+  </label>
+
+  <p style="font-size:11px; color:#666; line-height:1.6; margin-top:10px;">
+    Lee pistas escritas: "21 años", "2003", "'04", "15/06/03", "promo 2021".
+    <b>No analiza la foto</b>: estimar edad de una cara falla por ±6 años y genera
+    datos biométricos. Si alguien menciona que cursa el secundario, se saltea siempre.
+  </p>
+
+  <div class="section-title">Exportación y almacenamiento</div>
+
+  <label class="check-label" style="margin-top:0 !important;">
+    <input type="checkbox" id="cfgVaciarTrasExportar" checked>
+    Vaciar el historial después de exportar
+  </label>
+
+  <p style="font-size:11px; color:#666; line-height:1.6; margin-top:10px; margin-bottom:10px;">
+    Los seguidos se descargan como CSV al terminar la lista o al detener el bot, y
+    el historial se vacía para no acumular nada en el navegador.
+    La cola pendiente sí queda guardada mientras el bot corre: es lo que le permite
+    reanudar cuando Instagram recarga la página.
+  </p>
+
+  <button class="btn btn-secondary" id="btnGuardarConfig">💾 Guardar configuración</button>
+  <button class="btn btn-stop" id="btnLimpiarTodo" style="margin-top:4px;">⚠️ Limpiar TODO (lista + historial)</button>
+
+</div>
+
+<!-- ── TAB: HISTORIAL ── -->
+<div class="panel" id="tab-historial">
+
+  <div class="section-title">Usuarios seguidos (sesión actual)</div>
+  <div id="histSeguidos" style="max-height:120px; overflow-y:auto; margin-bottom:10px;">
+    <span style="color:#444; font-size:11px;">Ninguno aún.</span>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-green btn-sm" id="btnExportarSeguidos">💾 Exportar CSV</button>
+    <button class="btn btn-secondary btn-sm" id="btnCopiarSeguidos">Copiar lista</button>
+    <button class="btn btn-secondary btn-sm" id="btnLimpiarSeguidos">Limpiar</button>
+  </div>
+  <p style="font-size:10px; color:#555; line-height:1.5; margin-top:6px;">
+    Se exporta solo al terminar la lista o al detener el bot. El archivo queda en
+    <b>Descargas/ig-seguidos/</b> y se abre con Excel o se importa a Google Sheets.
+  </p>
+
+  <div class="section-title">Usuarios con error</div>
+  <div id="histErrores" style="max-height:80px; overflow-y:auto; margin-bottom:10px;">
+    <span style="color:#444; font-size:11px;">Ninguno.</span>
+  </div>
+  <button class="btn btn-secondary btn-sm" id="btnCopiarErrores">Copiar errores</button>
+
+  <div class="section-title">Usuarios a revisión</div>
+  <div class="warning" style="margin-bottom:8px;">
+    No se siguieron porque no apareció ninguna señal clara de Córdoba, universidad o facultad en el perfil. Tocá un nombre para abrirlo en Instagram (se abre en una pestaña de fondo).
+  </div>
+  <div id="histRevision" style="max-height:120px; overflow-y:auto; margin-bottom:10px;">
+    <span style="color:#444; font-size:11px;">Ninguno.</span>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-purple btn-sm" id="btnCopiarRevision">Copiar revisión</button>
+    <button class="btn btn-secondary btn-sm" id="btnLimpiarRevision">Limpiar</button>
+  </div>
+
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

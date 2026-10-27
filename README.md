@@ -13,7 +13,7 @@ Todo corre en tu navegador. No hay servidor, no hay cuentas, no se manda nada a 
 - **Filtro de locales y negocios** — saltea boliches, bares, restaurantes, tiendas y cualquier cuenta comercial.
 - **Palabras prohibidas** — saltea perfiles que mencionan lo que vos elijas (por defecto, `dj`).
 - **Filtro de edad** — deduce la edad de lo que la persona escribe y saltea siempre a quien está en el secundario.
-- **Revisión rápida** — los perfiles dudosos quedan en una lista donde tocás el nombre y se abre su Instagram.
+- **Revisión perfil por perfil** — los dudosos van a una pantalla donde ves foto, bio y últimas publicaciones, y decidís con dos botones: descartar o seguir.
 - **Exportación a CSV** — al terminar, los seguidos se guardan en un archivo que abre en Excel o Google Sheets.
 
 ---
@@ -116,6 +116,28 @@ Instagram no expone la edad, así que se **deduce del texto** que escribe la per
 - Si no hay ninguna pista, no inventa un número: lo deja pasar. Activá **"Mandar a revisión si no se puede deducir la edad"** para ser más estricto.
 - **No analiza fotos.** Estimar la edad por la cara falla por varios años y genera datos biométricos de terceros.
 
+---
+
+## Revisión perfil por perfil
+
+Los perfiles que el bot no pudo clasificar van a **Revisión**. Desde el popup, **🔍 Revisar uno por uno** abre una pantalla en su propia pestaña para resolverlos de a uno:
+
+- **Foto de perfil y últimas 9 publicaciones**, en grilla. Click en cualquiera para ampliarla.
+- **Nombre, bio, link y números** de posts, seguidores y seguidos.
+- **Etiquetas de contexto** con lo que opinaron los filtros: qué término de zona encontró, la edad que dedujo, o si lo detectó como negocio.
+- **Abrir y ver más en Instagram** para el perfil completo.
+- Dos botones: **✕ Descartar** (lo saca de la lista) y **✓ Seguir**.
+
+Atajos: `←` descartar, `→` seguir, `espacio` abrir en Instagram, `Esc` cerrar la foto ampliada.
+
+Necesita una pestaña de Instagram abierta con tu sesión: los datos salen de ahí. Mientras mirás un perfil, el siguiente ya se está cargando.
+
+Lo que sigas desde acá también entra al CSV, con el motivo `aprobado en revisión`.
+
+> El botón verde sigue **al instante**, sin las pausas del bot automático. Como el ritmo lo ponés vos mirando cada perfil, suele ser más lento que el bot — pero no lo uses a toda velocidad.
+
+---
+
 ### Exportación
 
 Los seguidos se guardan en **`Descargas/ig-seguidos/seguidos-FECHA.csv`** al terminar la lista, al detener el bot o con **💾 Exportar CSV** en Historial.
@@ -154,7 +176,7 @@ __afFiltro.normalizar('ᴄᴏʀᴅᴏʙᴀ')            // cómo queda el texto 
 
 ## Privacidad
 
-- No hay servidor ni analytics: la extensión solo se comunica con `instagram.com`.
+- No hay servidor ni analytics: la extensión solo se comunica con `instagram.com` y con el CDN donde Instagram aloja las fotos.
 - La cola y la configuración viven en el almacenamiento local de la extensión, necesario para retomar si la página recarga.
 - Los seguidos se exportan a tu carpeta de Descargas y, por defecto, se borran del navegador.
 - El `.gitignore` excluye los CSV exportados y las listas de usuarios, para que no terminen en un repo por accidente.
@@ -170,6 +192,8 @@ ig-autofollow-extension/
 ├── content.js       Corre en instagram.com: lee el perfil, filtra y sigue
 ├── popup.html       Interfaz del popup
 ├── popup.js         Lógica del popup
+├── revision.html    Pantalla de revisión perfil por perfil
+├── revision.js      Lógica de la revisión
 └── icons/
 ```
 

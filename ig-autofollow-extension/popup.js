@@ -400,6 +400,16 @@ document.getElementById('btnCopiarErrores').addEventListener('click', async () =
   navigator.clipboard.writeText((state.errores || []).join('\n')).then(() => addLog('📋 Errores copiados.', '#00ffff'));
 });
 
+document.getElementById('btnAbrirRevision').addEventListener('click', async () => {
+  const state = await sendBg('GET_STATE');
+  if ((state.revision || []).length === 0) {
+    addLog('📭 No hay perfiles en revisión.', '#ff9500');
+    return;
+  }
+  await sendBg('ABRIR_REVISION');
+  window.close();
+});
+
 document.getElementById('btnCopiarRevision').addEventListener('click', async () => {
   const state = await sendBg('GET_STATE');
   navigator.clipboard.writeText((state.revision || []).join('\n')).then(() => addLog('📋 Revisión copiada.', '#00ffff'));

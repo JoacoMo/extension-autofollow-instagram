@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revisión de perfiles</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* Sin esto, .acciones { display:flex } le gana al atributo hidden */
+  [hidden] { display: none !important; }
+
+  body {
+    background: #0c0c0e;
+    color: #f0f0f0;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+  }
+
+  /* ── Barra superior ── */
+  .topbar {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .topbar-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .contador {
+    font-size: 12px;
+    color: #8e8e93;
+    background: #1a1a1d;
+    border: 1px solid #2a2a2e;
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
+
+  .barra-progreso {
+    width: 100%;
+    max-width: 440px;
+    height: 3px;
+    background: #1f1f23;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .barra-progreso-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #5856d6, #0a84ff);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  /* ── Tarjeta ── */
+  .card {
+    width: 100%;
+    max-width: 440px;
+    background: #15151a;
+    border: 1px solid #26262c;
+    border-radius: 18px;
+    overflow: hidden;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+  }
+  .card.sale-izq { transform: translateX(-120%) rotate(-8deg); opacity: 0; }
+  .card.sale-der { transform: translateX(120%) rotate(8deg); opacity: 0; }
+
+  .card-header { padding: 18px 18px 14px; display: flex; gap: 14px; align-items: flex-start; }
+
+  .avatar {
+    width: 74px; height: 74px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #26262c;
+    border: 2px solid #3a3a42;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .avatar:hover { border-color: #0a84ff; }
+
+  .ident { flex: 1; min-width: 0; }
+  .nombre {
+    font-size: 17px; font-weight: 700;
+    display: flex; align-items: center; gap: 6px;
+    word-break: break-word;
+  }
+  .usuario {
+    font-size: 13px; color: #0a84ff;
+    font-family: ui-monospace, monospace;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .usuario:hover { text-decoration: underline; }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .badge {
+    font-size: 10px; font-weight: 600;
+    border-radius: 5px; padding: 2px 7px;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .badge-privado  { background: #4a2a00; color: #ffb340; }
+  .badge-verif    { background: #00345a; color: #4aa8ff; }
+  .badge-sigo     { background: #0a3d1a; color: #4ade80; }
+  .badge-ok       { background: #1f1b4d; color: #a5a3ff; }
+  .badge-alerta   { background: #4a0f0f; color: #ff8a80; }
+
+  .stats-row {
+    display: flex; gap: 0;
+    border-top: 1px solid #26262c;
+    border-bottom: 1px solid #26262c;
+  }
+  .stat-cell { flex: 1; text-align: center; padding: 10px 4px; }
+  .stat-cell + .stat-cell { border-left: 1px solid #26262c; }
+  .stat-cell b { display: block; font-size: 15px; }
+  .stat-cell span { font-size: 10px; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .bio {
+    padding: 14px 18px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #d8d8dc;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  .bio:empty { display: none; }
+  .bio-vacia { color: #5a5a60; font-style: italic; }
+
+  .link-externo {
+    display: block;
+    padding: 0 18px 12px;
+    font-size: 12px;
+    color: #4aa8ff;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .link-externo:hover { text-decoration: underline; }
+
+  /* ── Grilla de fotos ── */
+  .grilla {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: #0c0c0e;
+  }
+  .foto-wrap {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    cursor: pointer;
+    background: #1f1f23;
+  }
+  .foto-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+  }
+  .foto-wrap:hover img { transform: scale(1.06); }
+  .foto-video {
+    position: absolute; top: 6px; right: 6px;
+    font-size: 11px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  .sin-fotos {
+    padding: 28px 18px;
+    text-align: center;
+    color: #6e6e73;
+    font-size: 12px;
+    line-height: 1.6;
+    background: #101014;
+  }
+
+  .ver-mas {
+    display: block;
+    text-align: center;
+    padding: 13px;
+    background: #1c1c22;
+    color: #4aa8ff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border-top: 1px solid #26262c;
+  }
+  .ver-mas:hover { background: #24242c; }
+
+  /* ── Botones de acción ── */
+  .acciones {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .btn-accion {
+    flex: 1;
+    padding: 17px;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  .btn-accion:hover:not(:disabled) { filter: brightness(1.15); }
+  .btn-accion:active:not(:disabled) { transform: scale(0.97); }
+  .btn-accion:disabled { opacity: 0.45; cursor: default; }
+  .btn-descartar { background: #d62f26; }
+  .btn-seguir    { background: #1a9e42; }
+  .btn-accion small { display: block; font-size: 10px; font-weight: 500; opacity: 0.75; }
+
+  .atajos {
+    max-width: 440px;
+    margin-top: 14px;
+    font-size: 11px;
+    color: #5a5a60;
+    text-align: center;
+    line-height: 1.7;
+  }
+  kbd {
+    background: #1f1f23;
+    border: 1px solid #33333a;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: #a0a0a8;
+  }
+
+  /* ── Estados ── */
+  .estado {
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+    padding: 50px 24px;
+    color: #8e8e93;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .estado .icono { font-size: 44px; display: block; margin-bottom: 14px; }
+  .estado b { color: #f0f0f0; }
+
+  .aviso {
+    background: #2a1a00;
+    border: 1px solid #5a3c00;
+    color: #e0a800;
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 12px;
+    line-height: 1.6;
+    max-width: 440px;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  .aviso.error { background: #2a0d0d; border-color: #5a1a1a; color: #ff8a80; }
+  .aviso a { color: inherit; font-weight: 600; }
+
+  .spinner {
+    width: 26px; height: 26px;
+    border: 3px solid #26262c;
+    border-top-color: #0a84ff;
+    border-radius: 50%;
+    animation: girar 0.8s linear infinite;
+    margin: 0 auto 14px;
+  }
+  @keyframes girar { to { transform: rotate(360deg); } }
+
+  /* ── Lightbox ── */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    cursor: zoom-out;
+    padding: 24px;
+  }
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .lightbox-cerrar {
+    position: absolute;
+    top: 16px; right: 20px;
+    font-size: 26px;
+    color: #fff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  @media (max-width: 420px) {
+    .card-header { flex-direction: column; align-items: center; text-align: center; }
+    .ident { text-align: center; }
+    .badges { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">👀 Revisión de perfiles</div>
+  <div class="contador" id="contador">—</div>
+</div>
+
+<div class="barra-progreso"><div class="barra-progreso-fill" id="progreso"></div></div>
+
+<div id="avisoBox"></div>
+<div id="contenido"></div>
+
+<div class="acciones" id="acciones" hidden>
+  <button class="btn-accion btn-descartar" id="btnDescartar">
+    <span>✕ Descartar</span>
+  </button>
+  <button class="btn-accion btn-seguir" id="btnSeguir">
+    <span>✓ Seguir</span>
+  </button>
+</div>
+
+<div class="atajos" id="atajos" hidden>
+  <kbd>←</kbd> descartar &nbsp;·&nbsp; <kbd>→</kbd> seguir &nbsp;·&nbsp; <kbd>espacio</kbd> abrir en Instagram
+</div>
+
+<script src="revision.js"></script>
+</body>
+</html>

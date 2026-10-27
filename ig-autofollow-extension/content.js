@@ -605,14 +605,148 @@
     return null;
   }
 
+  // =======================================================================
+  // DATOS DE PERFIL — para la pantalla de revisión
+  // =======================================================================
+  // Se usa la misma API web que consume instagram.com cuando abrís un perfil.
+  // Al correr dentro de instagram.com la request va con tu sesión y es una
+  // sola llamada por perfil, en vez de navegar y scrapear el DOM.
+
+  const IG_APP_ID_FALLBACK = '936619743392459';
+
+  function getAppId() {
+    // Instagram deja el App ID en los scripts de configuración de la página
+    try {
+      const html = document.documentElement.innerHTML;
+      const m = html.match(/"X-IG-App-ID"\s*:\s*"(\d+)"/)
+             || html.match(/"app_id"\s*:\s*"(\d+)"/);
+      if (m) return m[1];
+    } catch (e) {}
+    return IG_APP_ID_FALLBACK;
+  }
+
+  function getCookie(nombre) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + nombre + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  async function getPerfilInfo(usuario) {
+    const username = String(usuario || '').trim().replace(/^@/, '');
+    if (!username) return { ok: false, error: 'Usuario vacío' };
+
+    try {
+      const res = await fetch(
+        `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
+        {
+          headers: { 'X-IG-App-ID': getAppId() },
+          credentials: 'include',
+        }
+      );
+
+      if (res.status === 404) return { ok: false, error: 'El perfil no existe' };
+      if (res.status === 401) return { ok: false, error: 'Sesión cerrada: volvé a entrar a Instagram' };
+      if (res.status === 429) return { ok: false, error: 'Instagram pidió esperar (demasiadas consultas)' };
+      if (!res.ok) return { ok: false, error: `Instagram respondió ${res.status}` };
+
+      const json = await res.json();
+      const u = json?.data?.user;
+      if (!u) return { ok: false, error: 'Respuesta inesperada de Instagram' };
+
+      const posts = (u.edge_owner_to_timeline_media?.edges || [])
+        .slice(0, 9)
+        .map(e => ({
+          imagen: e.node?.thumbnail_src || e.node?.display_url || '',
+          esVideo: !!e.node?.is_video,
+          enlace: e.node?.shortcode ? `https://www.instagram.com/p/${e.node.shortcode}/` : '',
+        }))
+        .filter(p => p.imagen);
+
+      const perfil = {
+        id: u.id,
+        usuario: u.username || username,
+        nombre: u.full_name || '',
+        bio: u.biography || '',
+        enlaceExterno: u.external_url || '',
+        fotoPerfil: u.profile_pic_url_hd || u.profile_pic_url || '',
+        privado: !!u.is_private,
+        verificado: !!u.is_verified,
+        seguidores: u.edge_followed_by?.count ?? null,
+        siguiendo: u.edge_follow?.count ?? null,
+        publicaciones: u.edge_owner_to_timeline_media?.count ?? null,
+        yaLoSigo: !!u.followed_by_viewer,
+        solicitado: !!u.requested_by_viewer,
+        posts,
+      };
+
+      // Qué dirían los filtros sobre este perfil, para mostrarlo como contexto
+      const textoFiltro = [perfil.nombre, perfil.usuario, perfil.bio, perfil.enlaceExterno].join(' ');
+      perfil.analisis = {
+        cordoba: evaluarPerfil(textoFiltro, {}),
+        edad: evaluarEdad(textoFiltro, {}),
+      };
+
+      return { ok: true, perfil };
+    } catch (e) {
+      return { ok: false, error: e?.message || 'Falló la consulta a Instagram' };
+    }
+  }
+
+  // Seguir con un solo request, igual que el botón de la web.
+  async function seguirPorApi(userId) {
+    const csrf = getCookie('csrftoken');
+    if (!csrf) return { ok: false, error: 'No se encontró el token de sesión' };
+
+    try {
+      const res = await fetch(`https://www.instagram.com/api/v1/friendships/create/${userId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrf,
+          'X-IG-App-ID': getAppId(),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        credentials: 'include',
+        body: '',
+      });
+
+      if (res.status === 429) return { ok: false, error: 'Instagram pidió esperar antes de seguir a alguien más' };
+      if (!res.ok) return { ok: false, error: `Instagram respondió ${res.status}` };
+
+      const json = await res.json();
+      // friendship_status.following / outgoing_request según sea público o privado
+      const estado = json?.friendship_status || {};
+      if (json?.status === 'ok' && (estado.following || estado.outgoing_request)) {
+        return { ok: true, solicitado: !!estado.outgoing_request && !estado.following };
+      }
+      return { ok: false, error: 'Instagram no confirmó el seguimiento' };
+    } catch (e) {
+      return { ok: false, error: e?.message || 'Falló el seguimiento' };
+    }
+  }
+
   // ── Listener de mensajes del background ─────────────────────────────────
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // El background hace PING antes de cada orden para saber si ya estamos
+    // inyectados. Sin esta respuesta reinyecta el script en cada llamada.
+    if (message.action === 'PING') {
+      sendResponse({ ok: true });
+      return;
+    }
+
     if (message.action === 'FOLLOW_USER') {
-      seguirUsuario(message.usuario, message.filtro).then(resultado => {
-        sendResponse(resultado);
-      });
+      seguirUsuario(message.usuario, message.filtro).then(sendResponse);
       return true; // async
+    }
+
+    if (message.action === 'GET_PERFIL_INFO') {
+      getPerfilInfo(message.usuario).then(sendResponse);
+      return true;
+    }
+
+    if (message.action === 'FOLLOW_BY_API') {
+      seguirPorApi(message.userId).then(sendResponse);
+      return true;
     }
   });
 

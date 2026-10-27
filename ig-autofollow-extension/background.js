@@ -383,6 +383,110 @@ async function handleMessage(message, sender, sendResponse) {
       break;
     }
 
+    // ── Pantalla de revisión ────────────────────────────────────────────
+    case 'ABRIR_REVISION': {
+      const url = chrome.runtime.getURL('revision.html');
+      const existente = await new Promise(resolve => {
+        chrome.tabs.query({ url }, (tabs) => resolve(tabs && tabs[0]));
+      });
+      if (existente) {
+        chrome.tabs.update(existente.id, { active: true });
+        chrome.tabs.reload(existente.id);
+      } else {
+        chrome.tabs.create({ url });
+      }
+      sendResponse({ ok: true });
+      break;
+    }
+
+    case 'REVISION_LISTA': {
+      sendResponse({ ok: true, revision: state.revision || [] });
+      break;
+    }
+
+    // Plan B para las fotos: si el CDN de Instagram rechaza la carga directa
+    // desde la extensión, se traen acá (con host_permissions no hay CORS) y
+    // se devuelven como data URL.
+    case 'FETCH_IMAGEN': {
+      try {
+        const url = String(message.url || '');
+        if (!/^https:\/\/[^/]*(cdninstagram\.com|fbcdn\.net)\//.test(url)) {
+          sendResponse({ ok: false, error: 'URL no permitida' });
+          break;
+        }
+        const res = await fetch(url);
+        if (!res.ok) { sendResponse({ ok: false, error: `HTTP ${res.status}` }); break; }
+
+        const buffer = await res.arrayBuffer();
+        if (buffer.byteLength > 8 * 1024 * 1024) {
+          sendResponse({ ok: false, error: 'Imagen demasiado grande' });
+          break;
+        }
+
+        const bytes = new Uint8Array(buffer);
+        let binario = '';
+        for (let i = 0; i < bytes.length; i += 8192) {
+          binario += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+        }
+        const tipo = res.headers.get('content-type') || 'image/jpeg';
+        sendResponse({ ok: true, dataUrl: `data:${tipo};base64,${btoa(binario)}` });
+      } catch (e) {
+        sendResponse({ ok: false, error: e?.message || 'Falló la descarga' });
+      }
+      break;
+    }
+
+    case 'PERFIL_INFO': {
+      sendResponse(await sendToContent({ action: 'GET_PERFIL_INFO', usuario: message.usuario }));
+      break;
+    }
+
+    case 'REVISION_DESCARTAR': {
+      const usuario = message.usuario;
+      await setState({
+        revision: (state.revision || []).filter(u => u !== usuario),
+        saltados: [...(state.saltados || []), usuario],
+      });
+      sendResponse({ ok: true });
+      break;
+    }
+
+    case 'REVISION_SEGUIR': {
+      const usuario = message.usuario;
+
+      // Primero por API (un request). Si falla, se cae al método de siempre:
+      // navegar al perfil y clickear el botón Seguir.
+      let res = message.userId
+        ? await sendToContent({ action: 'FOLLOW_BY_API', userId: message.userId })
+        : { ok: false, error: 'Sin id de usuario' };
+
+      if (!res.ok) {
+        const porDom = await sendToContent({
+          action: 'FOLLOW_USER',
+          usuario,
+          filtro: { activo: false, edadActiva: false, negocioActivo: false, prohibidas: [] },
+        });
+        if (porDom.resultado === 'seguido') res = { ok: true };
+        else if (porDom.resultado === 'navegando') res = { ok: false, error: 'Abriendo el perfil, probá de nuevo en unos segundos' };
+        else res = { ok: false, error: porDom.razon || porDom.error || res.error };
+      }
+
+      if (!res.ok) { sendResponse(res); break; }
+
+      const actual = await getState();
+      await setState({
+        revision: (actual.revision || []).filter(u => u !== usuario),
+        seguidos: [...(actual.seguidos || []), {
+          usuario,
+          fecha: new Date().toISOString(),
+          motivo: res.solicitado ? 'aprobado en revisión (solicitud enviada)' : 'aprobado en revisión',
+        }],
+      });
+
+      sendResponse({ ok: true, solicitado: !!res.solicitado });
+      break;
+    }
+
     case 'CONTENT_READY': {
       // El content script avisó que cargó. Si el bot estaba corriendo, retomar.
       if (state.running && state.lista.length > 0) {

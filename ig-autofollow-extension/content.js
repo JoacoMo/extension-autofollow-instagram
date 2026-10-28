@@ -724,6 +724,169 @@
     }
   }
 
+  // =======================================================================
+  // PANEL DE REVISIÓN DENTRO DE INSTAGRAM
+  // =======================================================================
+  // Misma tarjeta que el popup y que revision.html (la arma revision-ui.js),
+  // montada en un shadow DOM: así los estilos de Instagram no tocan el panel
+  // ni el panel toca los de Instagram.
+
+  function sendBgDesdeContent(action, payload) {
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage(Object.assign({ action }, payload || {}), (res) => {
+        if (chrome.runtime.lastError) {
+          return resolve({ ok: false, error: chrome.runtime.lastError.message });
+        }
+        resolve(res || { ok: false, error: 'Sin respuesta' });
+      });
+    });
+  }
+
+  async function enviarDesdeIg(action, payload) {
+    // Ya estamos dentro de Instagram: el perfil se pide acá mismo, sin dar la
+    // vuelta por el background ni depender de qué pestaña esté activa.
+    if (action === 'PERFIL_INFO') return getPerfilInfo(payload.usuario);
+
+    // sinFallback: el plan B por DOM navegaría la página y se perdería el panel
+    if (action === 'REVISION_SEGUIR') {
+      return sendBgDesdeContent(action, Object.assign({}, payload, { sinFallback: true }));
+    }
+
+    return sendBgDesdeContent(action, payload);
+  }
+
+  const ESTILOS_PANEL = [
+    '.caja {',
+    '  width: 390px; max-width: calc(100vw - 32px); max-height: min(76vh, 760px);',
+    '  overflow-y: auto; background: #0c0c0e; border: 1px solid #26262c;',
+    '  border-radius: 18px; padding: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.6);',
+    '}',
+    '.caja[hidden] { display: none; }',
+    '.fab {',
+    '  display: flex; align-items: center; gap: 8px; border: none; cursor: pointer;',
+    '  background: linear-gradient(135deg, #5856d6, #0a84ff); color: #fff;',
+    '  font: 700 13px system-ui, -apple-system, sans-serif; padding: 11px 15px;',
+    '  border-radius: 24px; box-shadow: 0 6px 18px rgba(0,0,0,0.45);',
+    '}',
+    '.fab:hover { filter: brightness(1.12); }',
+    '.fab .cuenta {',
+    '  background: #fff; color: #10233a; border-radius: 12px;',
+    '  font-size: 11px; font-weight: 700; padding: 1px 7px;',
+    '}',
+    '.fab .cuenta[hidden] { display: none; }',
+  ].join('\n');
+
+  const panelIg = (() => {
+    let host = null;
+    let shadow = null;
+    let contenedor = null;
+    let caja = null;
+    let fab = null;
+    let control = null;
+    let visible = false;
+    let pendientes = 0;
+
+    function construir() {
+      if (host && host.isConnected) return true;
+      if (!window.AFRevision) return false;
+
+      host = document.createElement('div');
+      host.id = 'af-revision-host';
+      host.style.cssText = [
+        'position: fixed', 'right: 16px', 'bottom: 16px', 'z-index: 2147483000',
+        'display: flex', 'flex-direction: column', 'align-items: flex-end', 'gap: 10px',
+      ].join('; ');
+
+      shadow = host.attachShadow({ mode: 'open' });
+      const estilo = document.createElement('style');
+      estilo.textContent = ESTILOS_PANEL;
+      shadow.appendChild(estilo);
+
+      caja = document.createElement('div');
+      caja.className = 'caja';
+      caja.hidden = true;
+      contenedor = document.createElement('div');
+      caja.appendChild(contenedor);
+
+      fab = document.createElement('button');
+      fab.className = 'fab';
+      fab.type = 'button';
+      fab.innerHTML = '<span>👀</span><span class="texto">Revisar</span><span class="cuenta">0</span>';
+      fab.addEventListener('click', () => { if (visible) cerrar(); else abrir(); });
+
+      shadow.appendChild(caja);
+      shadow.appendChild(fab);
+      (document.body || document.documentElement).appendChild(host);
+      return true;
+    }
+
+    function pintarFab() {
+      if (!fab) return;
+      fab.querySelector('.texto').textContent = visible ? 'Cerrar' : 'Revisar';
+      const cuenta = fab.querySelector('.cuenta');
+      cuenta.textContent = pendientes;
+      cuenta.hidden = pendientes === 0;
+    }
+
+    function abrir() {
+      if (!construir()) return;
+      visible = true;
+      caja.hidden = false;
+      pintarFab();
+
+      if (control) control.destruir();
+      control = window.AFRevision.montar({
+        contenedor,
+        enviar: enviarDesdeIg,
+        modo: 'overlay',
+        // Pestaña nueva: si navegáramos esta, se cerraría el panel
+        abrirUrl: (url) => window.open(url, '_blank', 'noreferrer'),
+        alCerrar: cerrar,
+        alCambiarPendientes: (n) => { pendientes = n; pintarFab(); },
+      });
+      control.iniciar();
+    }
+
+    function cerrar() {
+      visible = false;
+      if (control) { control.destruir(); control = null; }
+      if (caja) caja.hidden = true;
+      pintarFab();
+      sincronizar();
+    }
+
+    function quitar() {
+      if (control) { control.destruir(); control = null; }
+      visible = false;
+      if (host) host.remove();
+      host = null; shadow = null; contenedor = null; caja = null; fab = null;
+    }
+
+    // El botón aparece solo cuando hay algo para revisar y el panel está activado
+    async function sincronizar() {
+      const state = await sendBgDesdeContent('GET_STATE');
+      const activado = !state || state.panelIgActivo !== false;
+      pendientes = (state && state.revision) ? state.revision.length : 0;
+
+      if (!activado || (pendientes === 0 && !visible)) { quitar(); return; }
+      if (!construir()) return;
+      pintarFab();
+    }
+
+    return { sincronizar };
+  })();
+
+  // El bot va sumando perfiles a revisión mientras corre, y la config puede
+  // apagar el panel: en los dos casos el botón se actualiza solo.
+  if (chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((cambios, area) => {
+      if (area !== 'local' || !cambios.af_state) return;
+      panelIg.sincronizar();
+    });
+  }
+
+  panelIg.sincronizar();
+
   // ── Listener de mensajes del background ─────────────────────────────────
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

@@ -117,6 +117,11 @@
   .stat.red .stat-num { color: #ff453a; }
   .stat.blue .stat-num { color: #0a84ff; }
   .stat.violet .stat-num { color: #5856d6; }
+  .stat-link { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .stat-link:hover { border-color: #5856d6; background: #1d1d26; }
+
+  /* El panel de revision aprovecha todo el ancho del popup */
+  #tab-revision { padding: 10px 10px 14px; }
 
   /* ── Buttons ── */
   .btn {
@@ -314,7 +319,7 @@
       <span class="stat-num" id="statPendientes">0</span>
       <span class="stat-label">Pendientes</span>
     </div>
-    <div class="stat violet">
+    <div class="stat violet stat-link" id="statRevisionCard" title="Revisar uno por uno">
       <span class="stat-num" id="statRevision">0</span>
       <span class="stat-label">Revisión</span>
     </div>
@@ -461,6 +466,19 @@
     datos biométricos. Si alguien menciona que cursa el secundario, se saltea siempre.
   </p>
 
+  <div class="section-title">Panel dentro de Instagram</div>
+
+  <label class="check-label" style="margin-top:0 !important;">
+    <input type="checkbox" id="cfgPanelIg" checked>
+    Mostrar el botón de revisión en instagram.com
+  </label>
+
+  <p style="font-size:11px; color:#666; line-height:1.6; margin-top:10px;">
+    Aparece abajo a la derecha, solo cuando hay perfiles esperando revisión, y abre
+    la misma tarjeta sin salir de Instagram. Si lo desactivás, podés revisar igual
+    desde el popup o en una pestaña aparte.
+  </p>
+
   <div class="section-title">Exportación y almacenamiento</div>
 
   <label class="check-label" style="margin-top:0 !important;">
@@ -510,7 +528,10 @@
   <div id="histRevision" style="max-height:120px; overflow-y:auto; margin-bottom:10px;">
     <span style="color:#444; font-size:11px;">Ninguno.</span>
   </div>
-  <button class="btn btn-purple" id="btnAbrirRevision">🔍 Revisar uno por uno</button>
+  <div class="btn-row">
+    <button class="btn btn-purple btn-sm" id="btnAbrirRevision">🔍 Revisar acá</button>
+    <button class="btn btn-secondary btn-sm" id="btnAbrirRevisionTab">↗ En pestaña</button>
+  </div>
 
   <div class="btn-row">
     <button class="btn btn-secondary btn-sm" id="btnCopiarRevision">Copiar revisión</button>
@@ -519,6 +540,16 @@
 
 </div>
 
+<!-- ── PANEL: REVISIÓN (lo abren los botones, no tiene pestaña propia) ── -->
+<div class="panel" id="tab-revision">
+  <div class="btn-row">
+    <button class="btn btn-secondary btn-sm" id="btnVolverRevision">← Volver</button>
+    <button class="btn btn-secondary btn-sm" id="btnAbrirRevisionTab2">↗ Abrir en pestaña</button>
+  </div>
+  <div id="revisionApp"></div>
+</div>
+
+<script src="revision-ui.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

@@ -88,6 +88,7 @@ function escHtml(s) {
 
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
+    cerrarRevision();
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
@@ -157,6 +158,7 @@ async function loadState() {
   document.getElementById('cfgEdadActiva').checked = state.edadActiva !== false;
   document.getElementById('cfgEdadExigir').checked = state.edadExigir === true;
   document.getElementById('cfgVaciarTrasExportar').checked = state.vaciarTrasExportar !== false;
+  document.getElementById('cfgPanelIg').checked = state.panelIgActivo !== false;
   document.getElementById('cfgNegocioActivo').checked = state.negocioActivo !== false;
   setValor('cfgNegocioExtra', (state.negocioExtra || []).join('\n'));
   setValor('cfgEdadMin', state.edadMin || 18);
@@ -299,6 +301,7 @@ document.getElementById('btnGuardarConfig').addEventListener('click', async () =
     edadMax: filtro.edadMax,
     edadExigir: filtro.edadExigir,
     vaciarTrasExportar: document.getElementById('cfgVaciarTrasExportar').checked,
+    panelIgActivo: document.getElementById('cfgPanelIg').checked,
     negocioActivo: filtro.negocioActivo,
     negocioExtra: filtro.negocioExtra,
   });
@@ -400,7 +403,58 @@ document.getElementById('btnCopiarErrores').addEventListener('click', async () =
   navigator.clipboard.writeText((state.errores || []).join('\n')).then(() => addLog('📋 Errores copiados.', '#00ffff'));
 });
 
-document.getElementById('btnAbrirRevision').addEventListener('click', async () => {
+// ── Revisión perfil por perfil ──────────────────────────────────────────────
+// La tarjeta es la misma de revision.html y del panel de Instagram: la arma
+// revision-ui.js. Acá solo se la monta en el popup y se le pasa el transporte.
+
+let controlRevision = null;
+
+function cerrarRevision() {
+  if (!controlRevision) return;
+  controlRevision.destruir();
+  controlRevision = null;
+}
+
+function mostrarPanel(nombre) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('tab-' + nombre);
+  if (panel) panel.classList.add('active');
+  const chip = document.querySelector('.tab[data-tab="' + nombre + '"]');
+  if (chip) chip.classList.add('active');
+}
+
+async function hayPestanaDeInstagram() {
+  const tabs = await new Promise(resolve => {
+    chrome.tabs.query({ url: 'https://www.instagram.com/*' }, resolve);
+  });
+  return !!(tabs && tabs.length > 0);
+}
+
+function abrirRevisionEnPopup() {
+  cerrarRevision();
+  mostrarPanel('revision');
+
+  controlRevision = AFRevision.montar({
+    contenedor: document.getElementById('revisionApp'),
+    enviar: sendBg,
+    modo: 'popup',
+    // Pestaña de fondo: si tomara el foco, el popup se cerraría
+    abrirUrl: (url) => chrome.tabs.create({ url, active: false }),
+    comprobarSesion: async () => {
+      if (await hayPestanaDeInstagram()) return null;
+      return {
+        icono: '📵',
+        titulo: 'Abrí Instagram primero',
+        detalle: 'Los datos de cada perfil salen de una pestaña de Instagram con tu sesión.',
+      };
+    },
+  });
+
+  controlRevision.iniciar();
+}
+
+async function abrirRevisionEnPestana() {
   const state = await sendBg('GET_STATE');
   if ((state.revision || []).length === 0) {
     addLog('📭 No hay perfiles en revisión.', '#ff9500');
@@ -408,6 +462,17 @@ document.getElementById('btnAbrirRevision').addEventListener('click', async () =
   }
   await sendBg('ABRIR_REVISION');
   window.close();
+}
+
+document.getElementById('btnAbrirRevision').addEventListener('click', abrirRevisionEnPopup);
+document.getElementById('statRevisionCard').addEventListener('click', abrirRevisionEnPopup);
+document.getElementById('btnAbrirRevisionTab').addEventListener('click', abrirRevisionEnPestana);
+document.getElementById('btnAbrirRevisionTab2').addEventListener('click', abrirRevisionEnPestana);
+
+document.getElementById('btnVolverRevision').addEventListener('click', () => {
+  cerrarRevision();
+  mostrarPanel('historial');
+  renderHistorial();
 });
 
 document.getElementById('btnCopiarRevision').addEventListener('click', async () => {

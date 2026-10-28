@@ -29,6 +29,7 @@ const defaultState = {
   vaciarTrasExportar: true,    // no acumular el historial en el navegador
   negocioActivo: true,         // saltear locales, boliches y cuentas comerciales
   negocioExtra: [],            // rubros propios que suma el usuario
+  panelIgActivo: true,         // botón de revisión flotante en instagram.com
   usuarioActual: null,
   totalProcesados: 0,
   esperandoCargaHasta: 0,
@@ -70,7 +71,7 @@ async function sendToContent(message) {
         if (!chrome.runtime.lastError) return resolve(true);
         chrome.scripting.executeScript({
           target: { tabId },
-          files: ['content.js'],
+          files: ['revision-ui.js', 'content.js'],
         }, () => resolve(!chrome.runtime.lastError));
       });
     });
@@ -460,7 +461,9 @@ async function handleMessage(message, sender, sendResponse) {
         ? await sendToContent({ action: 'FOLLOW_BY_API', userId: message.userId })
         : { ok: false, error: 'Sin id de usuario' };
 
-      if (!res.ok) {
+      // El panel que corre dentro de Instagram pide sinFallback: navegar al
+      // perfil recargaría la página y se perdería el panel abierto.
+      if (!res.ok && !message.sinFallback) {
         const porDom = await sendToContent({
           action: 'FOLLOW_USER',
           usuario,

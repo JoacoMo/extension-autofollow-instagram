@@ -13,7 +13,7 @@ Todo corre en tu navegador. No hay servidor, no hay cuentas, no se manda nada a 
 - **Filtro de locales y negocios** — saltea boliches, bares, restaurantes, tiendas y cualquier cuenta comercial.
 - **Palabras prohibidas** — saltea perfiles que mencionan lo que vos elijas (por defecto, `dj`).
 - **Filtro de edad** — deduce la edad de lo que la persona escribe y saltea siempre a quien está en el secundario.
-- **Revisión perfil por perfil** — los dudosos van a una pantalla donde ves foto, bio y últimas publicaciones, y decidís con dos botones: descartar o seguir.
+- **Revisión perfil por perfil** — los dudosos van a una tarjeta donde ves foto, bio y últimas publicaciones, y decidís con dos botones: descartar o seguir. Se abre dentro de Instagram, en el popup o en una pestaña aparte.
 - **Exportación a CSV** — al terminar, los seguidos se guardan en un archivo que abre en Excel o Google Sheets.
 
 ---
@@ -120,19 +120,29 @@ Instagram no expone la edad, así que se **deduce del texto** que escribe la per
 
 ## Revisión perfil por perfil
 
-Los perfiles que el bot no pudo clasificar van a **Revisión**. Desde el popup, **🔍 Revisar uno por uno** abre una pantalla en su propia pestaña para resolverlos de a uno:
+Los perfiles que el bot no pudo clasificar van a **Revisión** y los resolvés de a uno. Es la misma tarjeta en los tres lados, usá el que te quede cómodo:
+
+| Dónde | Cómo se abre |
+|---|---|
+| **Sin salir de Instagram** | Botón flotante abajo a la derecha, con la cantidad pendiente. Aparece solo cuando hay alguien esperando |
+| **En el popup** | La tarjeta **Revisión** del tab Bot, o **🔍 Revisar acá** en Historial |
+| **En una pestaña aparte** | **↗ En pestaña**, para verlo en grande |
+
+En cada perfil ves:
 
 - **Foto de perfil y últimas 9 publicaciones**, en grilla. Click en cualquiera para ampliarla.
 - **Nombre, bio, link y números** de posts, seguidores y seguidos.
 - **Etiquetas de contexto** con lo que opinaron los filtros: qué término de zona encontró, la edad que dedujo, o si lo detectó como negocio.
-- **Abrir y ver más en Instagram** para el perfil completo.
+- **Abrir y ver más en Instagram**, que abre el perfil en otra pestaña sin perder la revisión.
 - Dos botones: **✕ Descartar** (lo saca de la lista) y **✓ Seguir**.
 
-Atajos: `←` descartar, `→` seguir, `espacio` abrir en Instagram, `Esc` cerrar la foto ampliada.
+Atajos: `←` descartar, `→` seguir, `espacio` abrir en Instagram, `Esc` cerrar la foto ampliada o el panel. Dentro de Instagram responden solo con el mouse sobre el panel, para no pisar los atajos de IG.
 
-Necesita una pestaña de Instagram abierta con tu sesión: los datos salen de ahí. Mientras mirás un perfil, el siguiente ya se está cargando.
+El panel flotante lee los perfiles de la pestaña donde estás parado. Desde el popup o desde la pestaña aparte necesitás tener Instagram abierto en alguna pestaña, con tu sesión: de ahí salen los datos. Mientras mirás un perfil, el siguiente ya se está cargando.
 
 Lo que sigas desde acá también entra al CSV, con el motivo `aprobado en revisión`.
+
+> Si el botón flotante te molesta, se apaga en **⚙️ Config → Panel dentro de Instagram**.
 
 > El botón verde sigue **al instante**, sin las pausas del bot automático. Como el ritmo lo ponés vos mirando cada perfil, suele ser más lento que el bot — pero no lo uses a toda velocidad.
 
@@ -189,11 +199,12 @@ __afFiltro.normalizar('ᴄᴏʀᴅᴏʙᴀ')            // cómo queda el texto 
 ig-autofollow-extension/
 ├── manifest.json    Permisos y registro de la extensión (Manifest V3)
 ├── background.js    Service worker: cola, estado, pausas, exportación CSV
-├── content.js       Corre en instagram.com: lee el perfil, filtra y sigue
+├── content.js       Corre en instagram.com: lee el perfil, filtra, sigue y monta el panel
 ├── popup.html       Interfaz del popup
 ├── popup.js         Lógica del popup
-├── revision.html    Pantalla de revisión perfil por perfil
-├── revision.js      Lógica de la revisión
+├── revision-ui.js   La tarjeta de revisión, compartida por los tres lugares donde se abre
+├── revision.html    Revisión en pestaña completa
+├── revision.js      Arranque de esa pestaña
 └── icons/
 ```
 

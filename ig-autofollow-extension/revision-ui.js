@@ -196,6 +196,16 @@
     '</div>',
   ].join('\n');
 
+  // Por qué lo habría descartado el bot, para mostrarlo como contexto
+  const MOTIVOS_DESCARTE = {
+    negocio: 'Negocio',
+    institucion: 'Institución',
+    famoso: 'Figura pública',
+    familia: 'Familia',
+    profesion: 'Recibido',
+    prohibida: 'Palabra prohibida',
+  };
+
   // ── Utilidades ─────────────────────────────────────────────────────────
 
   function esc(s) {
@@ -333,16 +343,22 @@
 
       const a = p.analisis || {};
       const zona = a.cordoba || {};
-      if (zona.estado === 'negocio') {
-        out.push('<span class="af-badge af-badge-alerta">Negocio: ' + esc(zona.termino) + '</span>');
-      } else if (zona.estado === 'cordoba') {
+      if (zona.estado === 'cordoba') {
         out.push('<span class="af-badge af-badge-ok">Zona: ' + esc(zona.termino) + '</span>');
+      } else if (MOTIVOS_DESCARTE[zona.estado]) {
+        out.push('<span class="af-badge af-badge-alerta">' +
+          MOTIVOS_DESCARTE[zona.estado] + ': ' + esc(zona.termino) + '</span>');
+      }
+      if (a.fama) {
+        out.push('<span class="af-badge af-badge-alerta">Figura pública: ' + esc(a.fama.termino) + '</span>');
       }
       const edad = a.edad || {};
       if (edad.estado === 'secundario') {
         out.push('<span class="af-badge af-badge-alerta">Secundario: ' + esc(edad.detalle) + '</span>');
       } else if (edad.edad) {
-        out.push('<span class="af-badge af-badge-ok">~' + edad.edad + ' años</span>');
+        const fuera = edad.estado === 'fuera_rango';
+        out.push('<span class="af-badge af-badge-' + (fuera ? 'alerta' : 'ok') + '">~' +
+          edad.edad + ' años</span>');
       }
       return out.join('');
     }

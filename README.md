@@ -10,9 +10,10 @@ Todo corre en tu navegador. No hay servidor, no hay cuentas, no se manda nada a 
 
 - **Cola persistente** — pegás o importás usuarios y el bot los va consumiendo con pausas aleatorias. Si Instagram recarga la página, retoma solo.
 - **Filtro de zona** — sigue solo a quien menciona tu ciudad, universidad o facultad en la bio. Viene configurado para **Córdoba capital** y lee cualquier tipografía: `𝘊𝘣𝘢`, `ᴄʙᴀ`, `Ｃｂａ`, `U.N.C`.
-- **Filtro de locales y negocios** — saltea boliches, bares, restaurantes, tiendas y cualquier cuenta comercial.
+- **Filtro de locales y negocios** — saltea boliches, bares, restaurantes, tiendas, emprendimientos y cualquier cuenta comercial.
+- **Solo estudiantes** — saltea instituciones y cuentas oficiales, figuras públicas, mamás y papás, y profesionales ya recibidos.
 - **Palabras prohibidas** — saltea perfiles que mencionan lo que vos elijas (por defecto, `dj`).
-- **Filtro de edad** — deduce la edad de lo que la persona escribe y saltea siempre a quien está en el secundario.
+- **Filtro de edad** — deduce la edad de lo que la persona escribe, por defecto entre 18 y 26, y saltea siempre a quien está en el secundario.
 - **Revisión perfil por perfil** — los dudosos van a una tarjeta donde ves foto, bio y últimas publicaciones, y decidís con dos botones: descartar o seguir. Se abre dentro de Instagram, en el popup o en una pestaña aparte.
 - **Exportación a CSV** — al terminar, los seguidos se guardan en un archivo que abre en Excel o Google Sheets.
 
@@ -20,18 +21,20 @@ Todo corre en tu navegador. No hay servidor, no hay cuentas, no se manda nada a 
 
 ## Cómo decide a quién seguir
 
-Cada perfil pasa por los filtros en este orden. El orden importa: un boliche cordobés tiene "Córdoba" en la bio, así que se descarta como negocio **antes** de chequear la zona.
+Cada perfil pasa por los filtros en este orden. El orden importa: la facultad, el boliche y la heladería de Córdoba también tienen "Córdoba" en la bio, así que todo lo que descarta se chequea **antes** que la zona.
 
 ```mermaid
 flowchart TD
-    A[Perfil de la cola] --> B{¿Palabra prohibida?}
-    B -- sí --> S[⏭️ Saltado]
-    B -- no --> C{¿Local o negocio?}
+    A[Perfil de la cola] --> V{¿Verificada o<br>+20.000 seguidores?}
+    V -- sí --> S[⏭️ Saltado]
+    V -- no --> B{¿Palabra prohibida?}
+    B -- sí --> S
+    B -- no --> C{¿Institución, figura pública,<br>negocio, familia o recibido?}
     C -- sí --> S
     C -- no --> D{¿Menciona la zona?}
     D -- no --> R[👀 Revisión]
     D -- sí --> E{¿Edad?}
-    E -- secundario o fuera de rango --> S
+    E -- secundario o fuera de 18-26 --> S
     E -- en rango o sin dato --> F{¿Ya lo seguís?}
     F -- sí --> S
     F -- no --> G[✅ Seguido]
@@ -40,7 +43,7 @@ flowchart TD
 | Resultado | Qué significa |
 |---|---|
 | ✅ **Seguido** | Pasó todos los filtros. El log muestra por qué: `Seguido @juan (por "famaf, ~22 años")` |
-| ⏭️ **Saltado** | Se descartó con certeza: negocio, palabra prohibida, menor, ya lo seguías |
+| ⏭️ **Saltado** | Se descartó con certeza: institución, figura pública, negocio, familia armada, ya recibido, fuera del rango de edad, o ya lo seguías |
 | 👀 **Revisión** | No se siguió porque no había señal de la zona. Revisalo a mano |
 | ❌ **Error** | No se pudo cargar el perfil o no apareció el botón Seguir |
 
@@ -99,7 +102,27 @@ Detecta la cuenta comercial de tres formas:
 2. **Categoría profesional** bajo el nombre: "Empresa local", "Club nocturno", "Tienda de…".
 3. **Rubro y vocabulario comercial**: boliche, discoteca, bar, cervecería, restaurante, boutique, indumentaria, showroom, delivery, envíos, reservas, turnos, promos…
 
-Sumá rubros propios en **"Rubros extra a saltar"**.
+Sumá rubros propios en **"Rubros extra a saltar"**. También entran los emprendimientos: tortas, uñas, tatuajes, fotografía, indumentaria, "pedidos por DM", "envíos a todo el país".
+
+### Solo estudiantes
+
+El público del boliche es gente que estudia. Estas cuatro categorías se saltean por separado y se pueden apagar una por una:
+
+| Categoría | Qué saltea | Ejemplos de la bio |
+|---|---|---|
+| **Instituciones** | Cuentas que no son una persona | "Universidad Nacional de…", "Centro de Estudiantes", "Municipalidad", "Club Atlético", "Parroquia", "Hospital" |
+| **Figuras públicas** | Famosos, artistas, influencers | "Cantante", "Creadora de contenido", "Booking", "Streamer" |
+| **Familia armada** | Mamás, papás, gente casada | "Mamá de Benja", "Casada 💍", "Mi esposo" |
+| **Recibidos** | Profesionales que ya terminaron | "Abogada", "Lic. en Nutrición", "Ing. Civil", "Egresada 2018" |
+
+Dos detalles que evitan falsos positivos:
+
+- **"Futura abogada" es una estudiante.** Si el perfil dice que estudia (`estudiante de`, `cursando`, `futura`, `alumna`, `facu`…), las palabras de profesión no lo descartan. Lo mismo con las instituciones: una facultad no escribe "estudiante de", escribe "formamos estudiantes".
+- **Las frases van completas.** `mamá` suelta aparece en cualquier bio ("mamá te amo"), así que se busca `mamá de`. `unc` no matchea dentro de "nunca", ni `licenciada` dentro de "licenciatura".
+
+Aparte del texto, se saltea **toda cuenta verificada** y toda cuenta con más seguidores que el tope configurado (20.000 por defecto). Es la señal más confiable de que no es un estudiante cualquiera.
+
+Con **"Mandar a revisión si no dice que estudia"** el filtro se pone estricto: ya no alcanza con nombrar Córdoba, tiene que aparecer la facultad, la carrera o que está estudiando.
 
 ### Edad
 
@@ -111,6 +134,8 @@ Instagram no expone la edad, así que se **deduce del texto** que escribe la per
 | `🎂 15/06/2003` | Año de nacimiento |
 | `promo 2021` | Egresó a los ~18 |
 | `'04`, `2003` | Año de nacimiento |
+
+El rango por defecto es **18 a 26**. Si ya habías guardado la configuración con el tope viejo (99), se actualiza solo la primera vez; si después lo cambiás a mano, queda como lo dejaste.
 
 - Si alguien menciona que **cursa el secundario** (promo de este año o futura, "6to año"), se saltea siempre, sin importar el rango.
 - Si no hay ninguna pista, no inventa un número: lo deja pasar. Activá **"Mandar a revisión si no se puede deducir la edad"** para ser más estricto.
@@ -167,10 +192,13 @@ Con **"Vaciar el historial después de exportar"** activado (por defecto), la li
 Desde la consola del navegador (F12), con un perfil de Instagram abierto:
 
 ```js
-__afFiltro.perfilActual()                  // evalúa el perfil que estás viendo
-__afFiltro.probar('𝘊𝘣𝘢 | ғᴀᴍᴀꜰ | 21 años')  // evalúa un texto cualquiera
-__afFiltro.edad('promo 2021 unc')          // solo el filtro de edad
-__afFiltro.normalizar('ᴄᴏʀᴅᴏʙᴀ')            // cómo queda el texto tras normalizar
+__afFiltro.perfilActual()                   // evalúa el perfil que estás viendo
+__afFiltro.probar('𝘊𝘣𝘢 | ғᴀᴍᴀꜰ | 21 años')   // evalúa un texto cualquiera
+__afFiltro.probar('Futura abogada | UNC')   // → cordoba (dice que estudia)
+__afFiltro.probar('Abogada | Córdoba')      // → profesion
+__afFiltro.edad('promo 2021 unc')           // solo el filtro de edad
+__afFiltro.fama({ verificado: true })       // solo el filtro de figura pública
+__afFiltro.normalizar('ᴄᴏʀᴅᴏʙᴀ')             // cómo queda el texto tras normalizar
 ```
 
 ---

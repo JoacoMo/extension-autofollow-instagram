@@ -24,8 +24,14 @@ const defaultState = {
   filtroProhibidas: ['dj'],    // si aparece esto, se saltea el perfil
   edadActiva: true,            // filtrar por la edad que se deduce del texto
   edadMin: 18,
-  edadMax: 99,
+  edadMax: 26,                 // el público del boliche: estudiantes
   edadExigir: false,           // true = mandar a revisión si no hay pista de edad
+  institucionActiva: true,     // saltear facultades, clubes, medios, organismos
+  famosoActivo: true,          // saltear figuras públicas, artistas, influencers
+  famosoMaxSeguidores: 20000,  // arriba de esto se considera figura pública
+  familiaActiva: true,         // saltear mamás, papás y gente casada
+  profesionActiva: true,       // saltear profesionales ya recibidos
+  soloEstudiantes: false,      // true = a revisión si no dice que estudia
   vaciarTrasExportar: true,    // no acumular el historial en el navegador
   negocioActivo: true,         // saltear locales, boliches y cuentas comerciales
   negocioExtra: [],            // rubros propios que suma el usuario
@@ -35,10 +41,22 @@ const defaultState = {
   esperandoCargaHasta: 0,
 };
 
+// El tope de edad pasó de 99 a 26 al agregar el filtro "solo estudiantes".
+// Si venía del valor viejo por defecto se actualiza una vez; si lo pusiste
+// a mano después, queda como lo dejaste.
+const CONFIG_VERSION = 2;
+
+function migrarConfig(state) {
+  if (state.cfgVersion >= CONFIG_VERSION) return state;
+  if (state.edadMax === 99) state.edadMax = defaultState.edadMax;
+  state.cfgVersion = CONFIG_VERSION;
+  return state;
+}
+
 async function getState() {
   return new Promise(resolve => {
     chrome.storage.local.get(STATE_KEY, (res) => {
-      resolve(Object.assign({}, defaultState, res[STATE_KEY] || {}));
+      resolve(migrarConfig(Object.assign({}, defaultState, res[STATE_KEY] || {})));
     });
   });
 }
@@ -206,10 +224,16 @@ async function procesarSiguiente() {
       prohibidas: state.filtroProhibidas || [],
       edadActiva: state.edadActiva !== false,
       edadMin: state.edadMin || 18,
-      edadMax: state.edadMax || 99,
+      edadMax: state.edadMax || defaultState.edadMax,
       edadExigir: state.edadExigir === true,
       negocioActivo: state.negocioActivo !== false,
       negocioExtra: state.negocioExtra || [],
+      institucionActiva: state.institucionActiva !== false,
+      famosoActivo: state.famosoActivo !== false,
+      famosoMaxSeguidores: state.famosoMaxSeguidores || defaultState.famosoMaxSeguidores,
+      familiaActiva: state.familiaActiva !== false,
+      profesionActiva: state.profesionActiva !== false,
+      soloEstudiantes: state.soloEstudiantes === true,
     },
   });
 
@@ -467,7 +491,12 @@ async function handleMessage(message, sender, sendResponse) {
         const porDom = await sendToContent({
           action: 'FOLLOW_USER',
           usuario,
-          filtro: { activo: false, edadActiva: false, negocioActivo: false, prohibidas: [] },
+          // Decisión manual: no la pisa ningún filtro
+          filtro: {
+            activo: false, edadActiva: false, negocioActivo: false, prohibidas: [],
+            institucionActiva: false, famosoActivo: false,
+            familiaActiva: false, profesionActiva: false,
+          },
         });
         if (porDom.resultado === 'seguido') res = { ok: true };
         else if (porDom.resultado === 'navegando') res = { ok: false, error: 'Abriendo el perfil, probá de nuevo en unos segundos' };

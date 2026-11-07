@@ -437,6 +437,42 @@
   <label>Rubros extra a saltar (uno por línea)</label>
   <textarea id="cfgNegocioExtra" rows="2" placeholder="agencia&#10;inmobiliaria"></textarea>
 
+  <div class="section-title">Solo estudiantes</div>
+
+  <label class="check-label" style="margin-top:0 !important;">
+    <input type="checkbox" id="cfgInstitucionActiva" checked>
+    Saltar instituciones, clubes, medios y cuentas oficiales
+  </label>
+
+  <label class="check-label">
+    <input type="checkbox" id="cfgFamosoActivo" checked>
+    Saltar figuras públicas, artistas e influencers
+  </label>
+
+  <label class="mt8">Tope de seguidores para considerar figura pública</label>
+  <input type="number" id="cfgFamosoMaxSeguidores" value="20000" min="500" step="500">
+
+  <label class="check-label">
+    <input type="checkbox" id="cfgFamiliaActiva" checked>
+    Saltar mamás, papás y gente casada
+  </label>
+
+  <label class="check-label">
+    <input type="checkbox" id="cfgProfesionActiva" checked>
+    Saltar profesionales ya recibidos
+  </label>
+
+  <label class="check-label">
+    <input type="checkbox" id="cfgSoloEstudiantes">
+    Mandar a revisión si no dice que estudia
+  </label>
+
+  <p style="font-size:11px; color:#666; line-height:1.6; margin-top:10px;">
+    Una cuenta verificada o con más seguidores que el tope se saltea sola, sin
+    importar la bio. <b>"Futura abogada" no cuenta como recibida</b>: si el perfil
+    dice que estudia, las palabras de profesión no lo descartan.
+  </p>
+
   <div class="section-title">Filtro edad</div>
 
   <label class="check-label" style="margin-top:0 !important;">
@@ -451,7 +487,7 @@
     </div>
     <div>
       <label>Edad máxima</label>
-      <input type="number" id="cfgEdadMax" value="99" min="13" max="99">
+      <input type="number" id="cfgEdadMax" value="26" min="13" max="99">
     </div>
   </div>
 

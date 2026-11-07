@@ -51,10 +51,16 @@ function leerConfigFiltro() {
     prohibidas: parseLineas(document.getElementById('cfgFiltroProhibidas').value),
     edadActiva: document.getElementById('cfgEdadActiva').checked,
     edadMin: parseInt(document.getElementById('cfgEdadMin').value) || 18,
-    edadMax: parseInt(document.getElementById('cfgEdadMax').value) || 99,
+    edadMax: parseInt(document.getElementById('cfgEdadMax').value) || 26,
     edadExigir: document.getElementById('cfgEdadExigir').checked,
     negocioActivo: document.getElementById('cfgNegocioActivo').checked,
     negocioExtra: parseLineas(document.getElementById('cfgNegocioExtra').value),
+    institucionActiva: document.getElementById('cfgInstitucionActiva').checked,
+    famosoActivo: document.getElementById('cfgFamosoActivo').checked,
+    famosoMaxSeguidores: parseInt(document.getElementById('cfgFamosoMaxSeguidores').value) || 20000,
+    familiaActiva: document.getElementById('cfgFamiliaActiva').checked,
+    profesionActiva: document.getElementById('cfgProfesionActiva').checked,
+    soloEstudiantes: document.getElementById('cfgSoloEstudiantes').checked,
   };
 }
 
@@ -162,7 +168,14 @@ async function loadState() {
   document.getElementById('cfgNegocioActivo').checked = state.negocioActivo !== false;
   setValor('cfgNegocioExtra', (state.negocioExtra || []).join('\n'));
   setValor('cfgEdadMin', state.edadMin || 18);
-  setValor('cfgEdadMax', state.edadMax || 99);
+  setValor('cfgEdadMax', state.edadMax || 26);
+
+  document.getElementById('cfgInstitucionActiva').checked = state.institucionActiva !== false;
+  document.getElementById('cfgFamosoActivo').checked = state.famosoActivo !== false;
+  document.getElementById('cfgFamiliaActiva').checked = state.familiaActiva !== false;
+  document.getElementById('cfgProfesionActiva').checked = state.profesionActiva !== false;
+  document.getElementById('cfgSoloEstudiantes').checked = state.soloEstudiantes === true;
+  setValor('cfgFamosoMaxSeguidores', state.famosoMaxSeguidores || 20000);
 }
 
 loadState();
@@ -304,6 +317,12 @@ document.getElementById('btnGuardarConfig').addEventListener('click', async () =
     panelIgActivo: document.getElementById('cfgPanelIg').checked,
     negocioActivo: filtro.negocioActivo,
     negocioExtra: filtro.negocioExtra,
+    institucionActiva: filtro.institucionActiva,
+    famosoActivo: filtro.famosoActivo,
+    famosoMaxSeguidores: filtro.famosoMaxSeguidores,
+    familiaActiva: filtro.familiaActiva,
+    profesionActiva: filtro.profesionActiva,
+    soloEstudiantes: filtro.soloEstudiantes,
   });
   chrome.storage.local.set({ af_state: newState }, () => {
     addLog('💾 Configuración guardada.', '#34c759');

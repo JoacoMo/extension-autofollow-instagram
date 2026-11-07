@@ -179,9 +179,123 @@
     'delivery', 'pedidos', 'envios', 'catalogo', 'promos', 'promociones',
     'descuentos', 'turnos', 'reservas', 'entradas', 'horarios',
     'atencion al cliente', 'local comercial', 'productora de eventos',
+
+    // Emprendimientos y servicios por cuenta propia
+    'emprendimiento', 'emprendedor*', 'marca propia', 'hecho a mano',
+    'productos artesanales', 'venta mayorista', 'por mayor', 'lista de precios',
+    'pedidos por dm', 'consultas por dm', 'envios a todo el pais',
+    'estudio juridico', 'estudio contable', 'estudio de tatuajes', 'tatuador*',
+    'manicuria', 'nail*', 'esculpidas', 'semipermanente', 'lashes', 'pestañas',
+    'diseño de cejas', 'make up artist', 'makeup artist', 'maquillaje profesional',
+    'depilacion', 'cosmetologia', 'estetica', 'spa', 'masajes',
+    'reposteria', 'pasteleria', 'tortas', 'cupcakes', 'souvenirs',
+    'decoracion de eventos', 'ambientacion', 'sesiones de fotos',
+    'personal trainer', 'entrenador personal',
+  ];
+
+  // ── Cuentas que no son una persona ─────────────────────────────────────
+  // Instituciones, organismos, medios y clubes. Muchas mencionan la facultad
+  // o la ciudad, así que sin esto pasarían el filtro de zona.
+
+  const TERMINOS_INSTITUCION = [
+    'cuenta oficial', 'pagina oficial', 'perfil oficial', 'sitio oficial', 'official account',
+
+    // Casas de estudio (la institución, no quien estudia ahí)
+    'universidad nacional', 'universidad tecnologica', 'universidad catolica',
+    'universidad provincial', 'universidad empresarial', 'universidad blas pascal',
+    'centro de estudiantes', 'federacion universitaria',
+    'instituto superior', 'instituto tecnico', 'centro educativo', 'academia de',
+    'jardin de infantes', 'escuela primaria', 'escuela secundaria', 'colegio nacional',
+    'escuela de futbol',
+
+    // Estado y organismos
+    'municipalidad', 'ministerio de', 'secretaria de', 'subsecretaria',
+    'gobierno de', 'direccion general', 'concejo deliberante', 'legislatura',
+    'defensoria', 'agencia cordoba',
+
+    // Organizaciones
+    'fundacion', 'asociacion civil', 'asociacion de', 'ong', 'cooperativa',
+    'mutual', 'sindicato', 'gremio', 'camara de comercio', 'colegio de',
+    'club atletico', 'club deportivo', 'club social',
+    'parroquia', 'iglesia', 'capilla', 'congregacion',
+
+    // Salud, cultura y medios
+    'hospital', 'sanatorio', 'clinica', 'centro de salud',
+    'biblioteca', 'museo', 'medio de comunicacion', 'portal de noticias',
+    'agencia de noticias', 'diario', 'periodico', 'revista', 'emisora',
+  ];
+
+  // ── Figuras públicas ───────────────────────────────────────────────────
+  // Lo más confiable es el tilde de verificado y la cantidad de seguidores
+  // (se chequea aparte, con números). Esto cubre lo que escriben en la bio.
+
+  const TERMINOS_FAMOSO = [
+    'figura publica', 'public figure', 'personalidad publica', 'artista musical',
+    'booking', 'contrataciones', 'representante', 'representacion', 'management',
+    'prensa y difusion', 'contacto comercial', 'canjes', 'publicidad',
+    'embajador de', 'embajadora de', 'sponsor',
+    'influencer', 'creador de contenido', 'creadora de contenido', 'content creator',
+    'youtuber', 'streamer', 'twitch', 'tiktoker', 'modelo profesional',
+    'cantante', 'musico', 'banda de', 'productor musical', 'beatmaker',
+    'freestyler', 'trapero', 'actor', 'actriz', 'conductor', 'conductora',
+    'locutor', 'locutora', 'periodista deportivo', 'futbolista', 'jugador de',
+  ];
+
+  // ── Vida ya armada: familia, pareja ────────────────────────────────────
+  // Van en frases, no en palabras sueltas: "mama" sola aparece en cualquier
+  // bio ("mamá te amo"), "mama de" no.
+
+  const TERMINOS_FAMILIA = [
+    'mama de', 'madre de', 'mami de', 'papa de', 'padre de', 'papi de',
+    'mama soltera', 'mama primeriza', 'futura mama', 'orgullosa mama', 'orgulloso papa',
+    'embarazada', 'mi bebe', 'mi hijo', 'mi hija', 'mis hijos', 'mis hijas',
+    'mis nenes', 'mis nenas', 'mom of', 'dad of', 'mother of', 'father of',
+    'boy mom', 'girl mom',
+    'mi esposa', 'mi esposo', 'mi marido', 'mi señora', 'esposa de', 'esposo de',
+    'casada', 'casado', 'casados', 'wife', 'husband',
+    'abuela de', 'abuelo de', 'soy abuela', 'soy abuelo',
+  ];
+
+  // ── Profesionales recibidos ────────────────────────────────────────────
+  // Ojo: "futura abogada" es una estudiante. Por eso estas palabras no
+  // cuentan si en el mismo perfil hay alguna señal de que todavía estudia.
+
+  const TERMINOS_PROFESION = [
+    'recibida', 'recibido', 'egresada', 'egresado', 'graduada', 'graduado',
+    'matricula profesional', 'posgrado', 'maestria', 'doctorado', 'mba', 'phd',
+    'residencia medica',
+    'abogada', 'abogado', 'escribana', 'escribano', 'contadora', 'contador',
+    'licenciada', 'licenciado', 'lic', 'ing', 'ingeniera', 'ingeniero',
+    'arquitecta', 'arquitecto', 'dra', 'medica', 'medico', 'cirujano',
+    'odontologa', 'odontologo', 'psicologa', 'psicologo', 'psicopedagoga',
+    'nutricionista', 'kinesiologa', 'kinesiologo', 'fonoaudiologa',
+    'veterinaria', 'veterinario', 'farmaceutica', 'bioquimica', 'bioquimico',
+    'enfermera', 'enfermero', 'docente', 'profesora', 'profesor', 'maestra',
+    'traductora', 'traductor', 'economista', 'martillera', 'terapeuta',
+    'consultora', 'consultor', 'asesora', 'asesor', 'coach',
+  ];
+
+  // ── Señales de que todavía estudia ─────────────────────────────────────
+  // Frases que escribe una persona, no una institución: una facultad no dice
+  // "estudiante de", dice "formamos estudiantes".
+
+  const SENALES_ESTUDIANTE = [
+    'estudiante de', 'estudiante en', 'soy estudiante', 'estudiando',
+    'cursando', 'cursada', 'parciales', 'ingresante', 'alumna', 'alumno',
+    'futura', 'futuro', 'universitaria', 'universitario', 'facu', 'promo',
+  ];
+
+  // Para el modo estricto también vale nombrar dónde estudia
+  const TERMINOS_ESTUDIO = [
+    'facultad', 'universidad', 'carrera', 'uni', 'colegio', 'secundario',
+    'unc', 'utn', 'frc', 'upc', 'ucc', 'ubp', 'ues21', 'siglo21', 'siglo 21',
+    'iua', 'ispc', 'ciudad universitaria', 'blas pascal',
+    'famaf', 'fcefyn', 'fcefn', 'ffyh', 'fcm', 'fcq', 'fcc', 'faud', 'fcs',
+    'fce', 'fca', 'fodo',
   ];
 
   const PROHIBIDAS_DEFAULT = ['dj'];
+  const SEGUIDORES_FAMOSO_DEFAULT = 20000;
 
   // ── Compilación de términos a regex (cacheada por config) ───────────────
 
@@ -212,6 +326,10 @@
       cfg.prohibidas || PROHIBIDAS_DEFAULT,
       cfg.negocioActivo !== false,
       cfg.negocioExtra || [],
+      cfg.institucionActiva !== false,
+      cfg.famosoActivo !== false,
+      cfg.familiaActiva !== false,
+      cfg.profesionActiva !== false,
     ]);
     if (cacheFiltro && cacheFiltro.clave === clave) return cacheFiltro;
 
@@ -223,11 +341,19 @@
       ? []
       : [...TERMINOS_NEGOCIO, ...(cfg.negocioExtra || [])];
 
+    const siActiva = (bandera, lista) => (bandera === false ? [] : lista);
+
     cacheFiltro = {
       clave,
       permitidos: compilarLista(permitidos),
       prohibidas: compilarLista(cfg.prohibidas || PROHIBIDAS_DEFAULT),
       negocio: compilarLista(negocio),
+      institucion: compilarLista(siActiva(cfg.institucionActiva, TERMINOS_INSTITUCION)),
+      famoso: compilarLista(siActiva(cfg.famosoActivo, TERMINOS_FAMOSO)),
+      familia: compilarLista(siActiva(cfg.familiaActiva, TERMINOS_FAMILIA)),
+      profesion: compilarLista(siActiva(cfg.profesionActiva, TERMINOS_PROFESION)),
+      estudiante: compilarLista(SENALES_ESTUDIANTE),
+      estudio: compilarLista([...SENALES_ESTUDIANTE, ...TERMINOS_ESTUDIO]),
     };
     return cacheFiltro;
   }
@@ -279,14 +405,100 @@
     const prohibida = buscarTermino(filtro.prohibidas, textos);
     if (prohibida) return { estado: 'prohibida', termino: prohibida };
 
-    // Antes que Córdoba: un boliche de Córdoba también dice "cba" en la bio
+    // Todo lo que descarta va antes que Córdoba: la facultad, el boliche y la
+    // heladería de Córdoba también dicen "cba" en la bio.
+    const estudia = buscarTermino(filtro.estudiante, textos);
+
+    // Una facultad no dice "estudiante de": si lo dice, es alguien que estudia ahí
+    const institucion = estudia ? null : buscarTermino(filtro.institucion, textos);
+    if (institucion) return { estado: 'institucion', termino: institucion };
+
+    const famoso = buscarTermino(filtro.famoso, textos);
+    if (famoso) return { estado: 'famoso', termino: famoso };
+
     const negocio = buscarTermino(filtro.negocio, textos);
     if (negocio) return { estado: 'negocio', termino: negocio };
 
-    const permitido = buscarTermino(filtro.permitidos, textos);
-    if (permitido) return { estado: 'cordoba', termino: permitido };
+    const familia = buscarTermino(filtro.familia, textos);
+    if (familia) return { estado: 'familia', termino: familia };
 
-    return { estado: 'sin_cordoba' };
+    // "futura abogada" es estudiante, "abogada" a secas ya se recibió
+    const profesion = estudia ? null : buscarTermino(filtro.profesion, textos);
+    if (profesion) return { estado: 'profesion', termino: profesion };
+
+    const permitido = buscarTermino(filtro.permitidos, textos);
+    if (!permitido) return { estado: 'sin_cordoba' };
+
+    // Modo estricto: además de la zona, tiene que haber señal de que estudia
+    if (config && config.soloEstudiantes === true) {
+      if (!buscarTermino(filtro.estudio, textos)) {
+        return { estado: 'sin_estudio', termino: permitido };
+      }
+    }
+
+    return { estado: 'cordoba', termino: permitido, estudia: estudia || null };
+  }
+
+  // ── Figura pública por números, no por texto ───────────────────────────
+  // El tilde de verificado y un número alto de seguidores son la señal más
+  // confiable. Los datos salen del DOM (bot) o de la API (revisión).
+
+  function evaluarFama(datos, config) {
+    const cfg = config || {};
+    if (cfg.famosoActivo === false) return null;
+    const d = datos || {};
+
+    if (d.verificado) return { estado: 'famoso', termino: 'cuenta verificada' };
+
+    const tope = Number(cfg.famosoMaxSeguidores) > 0
+      ? Number(cfg.famosoMaxSeguidores)
+      : SEGUIDORES_FAMOSO_DEFAULT;
+
+    if (Number.isFinite(d.seguidores) && d.seguidores > tope) {
+      return { estado: 'famoso', termino: `${d.seguidores.toLocaleString('es-AR')} seguidores` };
+    }
+    return null;
+  }
+
+  // Lo que se puede leer del perfil abierto: el tilde y el contador de
+  // seguidores. Instagram deja el número exacto en el title del span.
+  function senalesDelDom() {
+    const header = document.querySelector('header') || document.body;
+
+    const verificado = !!header.querySelector(
+      'svg[aria-label*="erificad"], svg[aria-label*="erified"]'
+    );
+
+    let seguidores = null;
+    const enlace = header.querySelector('a[href$="/followers/"]')
+      || header.querySelector('a[href*="/followers"]');
+    if (enlace) {
+      const span = enlace.querySelector('span[title]');
+      const crudo = span ? span.getAttribute('title') : (enlace.innerText || '');
+      seguidores = numeroDeSeguidores(crudo);
+    }
+
+    return { verificado, seguidores };
+  }
+
+  // "1.234" → 1234 · "15,3 mil" → 15300 · "1,2 M" → 1200000
+  function numeroDeSeguidores(crudo) {
+    const texto = String(crudo || '').toLowerCase().trim();
+    const m = texto.match(/([\d.,]+)\s*(mil|k|m|millones)?/);
+    if (!m) return null;
+
+    // es-AR: el punto separa miles y la coma es decimal. En inglés es al revés,
+    // y ahí la coma siempre viene seguida de tres dígitos ("25,000").
+    const crudoNumero = /^\d{1,3}(,\d{3})+$/.test(m[1])
+      ? m[1].replace(/,/g, '')
+      : m[1].replace(/\./g, '').replace(',', '.');
+    const base = Number(crudoNumero);
+    if (!Number.isFinite(base)) return null;
+
+    const sufijo = m[2];
+    if (sufijo === 'mil' || sufijo === 'k') return Math.round(base * 1000);
+    if (sufijo === 'm' || sufijo === 'millones') return Math.round(base * 1000000);
+    return Math.round(base);
   }
 
   // =======================================================================
@@ -381,7 +593,7 @@
   function evaluarEdad(textoCrudo, config) {
     const cfg = config || {};
     const min = Number(cfg.edadMin) > 0 ? Number(cfg.edadMin) : 18;
-    const max = Number(cfg.edadMax) > 0 ? Number(cfg.edadMax) : 99;
+    const max = Number(cfg.edadMax) > 0 ? Number(cfg.edadMax) : 26;
 
     const secundario = senalDeSecundario(textoCrudo);
     if (secundario) return { estado: 'secundario', detalle: secundario, min, max };
@@ -401,13 +613,22 @@
     normalizar: normalizarTexto,
     probar: (texto, config) => evaluarPerfil(texto, config),
     edad: (texto, config) => evaluarEdad(texto, config),
+    fama: (datos, config) => evaluarFama(datos, config),
+    seguidores: (crudo) => numeroDeSeguidores(crudo),
     perfilActual: (config) => ({
       cordoba: evaluarPerfil(extraerTextoPerfil(), config),
       edad: evaluarEdad(extraerTextoPerfil(), config),
+      fama: evaluarFama(senalesDelDom(), config),
+      dom: senalesDelDom(),
     }),
     terminos: TERMINOS_CORDOBA,
     terminosInterior: TERMINOS_INTERIOR,
     terminosNegocio: TERMINOS_NEGOCIO,
+    terminosInstitucion: TERMINOS_INSTITUCION,
+    terminosFamoso: TERMINOS_FAMOSO,
+    terminosFamilia: TERMINOS_FAMILIA,
+    terminosProfesion: TERMINOS_PROFESION,
+    senalesEstudiante: SENALES_ESTUDIANTE,
   };
 
   // ── Avisar al background que el content script está listo ───────────────
@@ -524,6 +745,13 @@
     const textoPerfil = extraerTextoPerfil();
     const motivos = [];
 
+    // Figura pública por números: el tilde de verificado y el contador de
+    // seguidores son más confiables que cualquier palabra de la bio.
+    const fama = evaluarFama(senalesDelDom(), cfg);
+    if (fama) {
+      return { resultado: 'saltado', razon: `Figura pública: ${fama.termino}` };
+    }
+
     if (cfg.activo !== false) {
       const evaluacion = evaluarPerfil(textoPerfil, cfg);
 
@@ -536,8 +764,23 @@
       if (evaluacion.estado === 'negocio') {
         return { resultado: 'saltado', razon: `Local o negocio: "${evaluacion.termino}"` };
       }
+      if (evaluacion.estado === 'institucion') {
+        return { resultado: 'saltado', razon: `Institución o cuenta oficial: "${evaluacion.termino}"` };
+      }
+      if (evaluacion.estado === 'famoso') {
+        return { resultado: 'saltado', razon: `Figura pública: "${evaluacion.termino}"` };
+      }
+      if (evaluacion.estado === 'familia') {
+        return { resultado: 'saltado', razon: `Familia armada: "${evaluacion.termino}"` };
+      }
+      if (evaluacion.estado === 'profesion') {
+        return { resultado: 'saltado', razon: `Ya recibido: "${evaluacion.termino}"` };
+      }
       if (evaluacion.estado === 'sin_cordoba') {
         return { resultado: 'revision', razon: 'No menciona Córdoba en la bio/nombre' };
+      }
+      if (evaluacion.estado === 'sin_estudio') {
+        return { resultado: 'revision', razon: 'No dice que estudie nada' };
       }
       motivos.push(evaluacion.termino);
     }
@@ -683,6 +926,7 @@
       perfil.analisis = {
         cordoba: evaluarPerfil(textoFiltro, {}),
         edad: evaluarEdad(textoFiltro, {}),
+        fama: evaluarFama({ verificado: perfil.verificado, seguidores: perfil.seguidores }, {}),
       };
 
       return { ok: true, perfil };

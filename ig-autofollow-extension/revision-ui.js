@@ -89,6 +89,15 @@
     '.af-rev .af-stat + .af-stat { border-left: 1px solid #26262c; }',
     '.af-rev .af-stat b { display: block; font-size: 14px; }',
     '.af-rev .af-stat span { font-size: 9.5px; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.5px; }',
+    '.af-rev .af-stat-comun b { color: #4ade80; }',
+    '.af-rev .af-comun {',
+    '  padding: 10px 16px 0; font-size: 11.5px; color: #8e8e93; line-height: 1.5;',
+    '}',
+    '.af-rev .af-comun b { color: #4ade80; font-weight: 600; }',
+    '.af-rev--popup .af-comun { padding: 9px 12px 0; }',
+    /* Foto que ni el CDN ni el background pudieron traer */
+    '.af-rev .af-foto.af-rota { background: repeating-linear-gradient(45deg, #1a1a1f, #1a1a1f 6px, #15151a 6px, #15151a 12px); }',
+    '.af-rev img.af-rota { background: #26262c; }',
     '.af-rev .af-bio {',
     '  padding: 13px 16px; font-size: 12.5px; line-height: 1.6; color: #d8d8dc;',
     '  white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow-y: auto;',
@@ -363,12 +372,23 @@
       return out.join('');
     }
 
+    // "Lo siguen @sofi, @juan y 12 más": de un vistazo se ve si es del ambiente
+    function lineaEnComun(p) {
+      const ejemplos = p.enComunEjemplos || [];
+      if (!ejemplos.length) return '';
+
+      const nombres = ejemplos.map(u => '<b>@' + esc(u) + '</b>').join(', ');
+      const resto = (p.enComun || 0) - ejemplos.length;
+      return '<div class="af-comun">👥 Lo siguen ' + nombres +
+        (resto > 0 ? ' y ' + resto + ' más' : '') + ' de los que seguís</div>';
+    }
+
     function render(p) {
       const posts = p.posts || [];
       const grilla = posts.length > 0
         ? '<div class="af-grilla">' + posts.map(f =>
             '<div class="af-foto" data-grande="' + esc(f.imagen) + '">' +
-            '<img src="' + esc(f.imagen) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' +
+            '<img data-src="' + esc(f.imagen) + '" alt="" referrerpolicy="no-referrer">' +
             (f.esVideo ? '<span class="af-foto-video">▶</span>' : '') +
             '</div>').join('') + '</div>'
         : '<div class="af-sin-fotos">' + (p.privado
@@ -378,7 +398,7 @@
       el('contenido').innerHTML =
         '<div class="af-card" data-rol="card">' +
           '<div class="af-card-header">' +
-            '<img class="af-avatar" src="' + esc(p.fotoPerfil) + '" alt="" referrerpolicy="no-referrer" data-grande="' + esc(p.fotoPerfil) + '">' +
+            '<img class="af-avatar" data-src="' + esc(p.fotoPerfil) + '" alt="" referrerpolicy="no-referrer" data-grande="' + esc(p.fotoPerfil) + '">' +
             '<div class="af-ident">' +
               '<div class="af-nombre">' + esc(p.nombre || p.usuario) + '</div>' +
               '<a class="af-usuario" data-perfil="1" href="' + esc(urlPerfil(p.usuario)) + '">@' + esc(p.usuario) + '</a>' +
@@ -389,7 +409,10 @@
             '<div class="af-stat"><b>' + miles(p.publicaciones) + '</b><span>Posts</span></div>' +
             '<div class="af-stat"><b>' + miles(p.seguidores) + '</b><span>Seguidores</span></div>' +
             '<div class="af-stat"><b>' + miles(p.siguiendo) + '</b><span>Siguiendo</span></div>' +
+            (p.enComun == null ? '' :
+              '<div class="af-stat af-stat-comun"><b>' + miles(p.enComun) + '</b><span>En común</span></div>') +
           '</div>' +
+          lineaEnComun(p) +
           '<div class="af-bio">' + (p.bio ? esc(p.bio) : '<span class="af-bio-vacia">Sin biografía.</span>') + '</div>' +
           (p.enlaceExterno
             ? '<a class="af-link-externo" href="' + esc(p.enlaceExterno) + '" target="_blank" rel="noreferrer">🔗 ' + esc(p.enlaceExterno) + '</a>'
@@ -407,27 +430,55 @@
       raiz.querySelectorAll('[data-grande]').forEach(nodo => {
         nodo.addEventListener('click', () => abrirLightbox(nodo.dataset.grande));
       });
-      raiz.querySelectorAll('.af-card img').forEach(rescatarSiFalla);
+      cargarImagenes();
     }
 
-    // Si el CDN de Instagram rechaza la carga directa, se pide la imagen al
-    // background, que la trae y la devuelve como data URL.
-    function rescatarSiFalla(img) {
-      img.addEventListener('error', async () => {
-        const url = img.getAttribute('src') || '';
-        if (!url || url.startsWith('data:') || img.dataset.rescatada) return;
-        img.dataset.rescatada = '1';
+    // ── Fotos ────────────────────────────────────────────────────────────
+    // Instagram sirve las fotos desde su CDN y fuera de instagram.com a veces
+    // las rechaza. Por eso el src se pone acá y no en el HTML: así el manejo
+    // del error queda enganchado antes de que empiece la carga, y si falla
+    // (o si no carga nunca) la trae el background, que sí tiene permiso.
+
+    function cargarImagenes() {
+      raiz.querySelectorAll('img[data-src]').forEach(img => {
+        const url = img.getAttribute('data-src');
+        img.removeAttribute('data-src');
+        cargarImagen(img, url);
+      });
+    }
+
+    function cargarImagen(img, url) {
+      if (!url) return;
+      let pedida = false;
+
+      const porElBackground = async () => {
+        if (pedida || destruido) return;
+        pedida = true;
+        if (url.startsWith('data:')) return;
 
         const res = await enviar('FETCH_IMAGEN', { url });
+        if (destruido) return;
+
         if (res && res.ok && res.dataUrl) {
           img.src = res.dataUrl;
           const wrap = img.closest('[data-grande]');
           if (wrap) wrap.dataset.grande = res.dataUrl;
         } else {
-          img.alt = 'No se pudo cargar';
-          img.style.opacity = '0.25';
+          img.removeAttribute('src');
+          img.alt = 'sin foto';
+          const contenedorFoto = img.closest('.af-foto') || img;
+          contenedorFoto.classList.add('af-rota');
+          console.warn('[revisión] no se pudo cargar la foto', url, res && res.error);
         }
-      }, { once: true });
+      };
+
+      img.addEventListener('error', porElBackground, { once: true });
+      img.src = url;
+
+      // Red de seguridad: hay fallas que no disparan el evento error
+      setTimeout(() => {
+        if (!img.complete || img.naturalWidth === 0) porElBackground();
+      }, 3000);
     }
 
     // ── Foto ampliada ────────────────────────────────────────────────────
@@ -438,10 +489,12 @@
       box.className = 'af-lightbox';
       box.innerHTML =
         '<button class="af-lightbox-cerrar" title="Cerrar">✕</button>' +
-        '<img src="' + esc(url) + '" alt="" referrerpolicy="no-referrer">';
+        '<img alt="" referrerpolicy="no-referrer">';
       box.addEventListener('click', () => box.remove());
       raiz.appendChild(box);
-      rescatarSiFalla(box.querySelector('img'));
+      const foto = box.querySelector('img');
+      foto.removeAttribute('data-src');
+      cargarImagen(foto, url);
     }
 
     function cerrarLightbox() {

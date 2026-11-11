@@ -904,6 +904,13 @@
         }))
         .filter(p => p.imagen);
 
+      // Gente que vos seguís y también lo sigue: la señal más rápida de si
+      // es del mismo ambiente. Instagram la devuelve con hasta 3 ejemplos.
+      const comun = u.edge_mutual_followed_by || {};
+      const comunEjemplos = (comun.edges || [])
+        .map(e => e.node && e.node.username)
+        .filter(Boolean);
+
       const perfil = {
         id: u.id,
         usuario: u.username || username,
@@ -918,6 +925,8 @@
         publicaciones: u.edge_owner_to_timeline_media?.count ?? null,
         yaLoSigo: !!u.followed_by_viewer,
         solicitado: !!u.requested_by_viewer,
+        enComun: Number.isFinite(comun.count) ? comun.count : null,
+        enComunEjemplos: comunEjemplos.slice(0, 3),
         posts,
       };
 

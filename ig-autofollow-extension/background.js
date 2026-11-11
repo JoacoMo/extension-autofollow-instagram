@@ -481,9 +481,12 @@ async function handleMessage(message, sender, sendResponse) {
 
       // Primero por API (un request). Si falla, se cae al método de siempre:
       // navegar al perfil y clickear el botón Seguir.
-      let res = message.userId
-        ? await sendToContent({ action: 'FOLLOW_BY_API', userId: message.userId })
-        : { ok: false, error: 'Sin id de usuario' };
+      // Sin id igual se intenta: el content script lo busca por nombre
+      let res = await sendToContent({
+        action: 'FOLLOW_BY_API',
+        usuario,
+        userId: message.userId,
+      });
 
       // El panel que corre dentro de Instagram pide sinFallback: navegar al
       // perfil recargaría la página y se perdería el panel abierto.

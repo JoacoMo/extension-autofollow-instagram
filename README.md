@@ -233,6 +233,29 @@ __afFiltro.normalizar('ᴄᴏʀᴅᴏʙᴀ')             // cómo queda el texto
 
 ---
 
+## Si un perfil "no existe" pero sí existe
+
+Los datos de cada perfil salen de la misma API que usa instagram.com (`web_profile_info`), e Instagram la viene cerrando de a poco: para algunas cuentas responde **404 o 400 aunque el perfil exista** y tengas la sesión abierta.
+
+Por eso la tarjeta no se rinde con el primer error:
+
+1. Pide el perfil por la API de siempre, con las mismas cabeceras que manda el Instagram web.
+2. Si eso falla, prueba el **feed del usuario**, que trae las publicaciones.
+3. Y el **buscador**, que trae el id, la foto y los seguidores.
+4. Con lo que haya arma una tarjeta marcada como incompleta, en amarillo, diciendo qué falta.
+
+Seguir funciona igual aunque no se haya podido leer el perfil: si no hay id, lo busca por nombre de usuario.
+
+Si aun así no sale, abrí la consola en instagram.com (F12) y pegá esto:
+
+```js
+await __afFiltro.diagnostico('elusuario')
+```
+
+Te dice qué contestó cada endpoint, si la cookie de sesión está y qué App ID se está usando. Con eso se ve si es la cuenta puntual, la sesión, o que Instagram te está frenando por consultar muy seguido.
+
+---
+
 ## Recomendaciones para evitar bloqueos
 
 - Pausas de **20 a 40 segundos** entre follows.

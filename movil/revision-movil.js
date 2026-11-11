@@ -89,8 +89,8 @@ async function enviarEnElCelular(accion, datos) {
   }
 
   if (accion === 'REVISION_SEGUIR') {
-    if (!d.userId) return { ok: false, error: 'No se pudo leer el id del perfil' };
-    const res = await seguirPorApi(d.userId);
+    // Sin id igual se intenta: lo busca por nombre de usuario
+    const res = await seguirAUsuario(d.usuario, d.userId);
     if (res.ok) {
       cola.sacar(d.usuario);
       seguidos.sumar(d.usuario);

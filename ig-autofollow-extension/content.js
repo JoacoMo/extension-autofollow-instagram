@@ -617,6 +617,8 @@
     probar: (texto, config) => evaluarPerfil(texto, config),
     edad: (texto, config) => evaluarEdad(texto, config),
     fama: (datos, config) => evaluarFama(datos, config),
+    diagnostico: (usuario) => diagnosticarPerfil(usuario),
+    perfil: (usuario) => getPerfilInfo(usuario),
     seguidores: (crudo) => numeroDeSeguidores(crudo),
     perfilActual: (config) => ({
       cordoba: evaluarPerfil(extraerTextoPerfil(), config),
@@ -858,8 +860,14 @@
   // Se usa la misma API web que consume instagram.com cuando abrís un perfil.
   // Al correr dentro de instagram.com la request va con tu sesión y es una
   // sola llamada por perfil, en vez de navegar y scrapear el DOM.
+  //
+  // Instagram viene cerrando web_profile_info de a poco: para algunas cuentas
+  // contesta 404 o 400 aunque el perfil exista y estés con la sesión abierta.
+  // Por eso hay dos respaldos que todavía responden, y con lo que devuelvan
+  // se arma una tarjeta parcial en vez de dar el perfil por inexistente.
 
   const IG_APP_ID_FALLBACK = '936619743392459';
+  const IG_ASBD_ID_FALLBACK = '129477';
 
   function getAppId() {
     // Instagram deja el App ID en los scripts de configuración de la página
@@ -872,81 +880,255 @@
     return IG_APP_ID_FALLBACK;
   }
 
+  function getAsbdId() {
+    try {
+      const m = document.documentElement.innerHTML.match(/"asbd_id"\s*:\s*"?(\d+)"?/);
+      if (m) return m[1];
+    } catch (e) {}
+    return IG_ASBD_ID_FALLBACK;
+  }
+
+  // Instagram marca la sesión con este valor y lo exige en sus propias
+  // llamadas; sin él responde 400 en varias cuentas.
+  function getWwwClaim() {
+    try {
+      return sessionStorage.getItem('www-claim-v2') || '0';
+    } catch (e) {
+      return '0';
+    }
+  }
+
   function getCookie(nombre) {
     const m = document.cookie.match(new RegExp('(?:^|; )' + nombre + '=([^;]*)'));
     return m ? decodeURIComponent(m[1]) : '';
   }
 
-  async function getPerfilInfo(usuario) {
-    const username = String(usuario || '').trim().replace(/^@/, '');
-    if (!username) return { ok: false, error: 'Usuario vacío' };
+  // Las mismas cabeceras que manda el Instagram web
+  function cabecerasIg(extra) {
+    const cabeceras = {
+      'X-IG-App-ID': getAppId(),
+      'X-ASBD-ID': getAsbdId(),
+      'X-IG-WWW-Claim': getWwwClaim(),
+      'X-Requested-With': 'XMLHttpRequest',
+    };
+    const csrf = getCookie('csrftoken');
+    if (csrf) cabeceras['X-CSRFToken'] = csrf;
+    return Object.assign(cabeceras, extra || {});
+  }
 
+  function explicarEstado(status) {
+    if (status === 404) {
+      return 'Instagram no devolvió el perfil (404). Puede que haya cambiado de nombre de usuario, ' +
+             'o que te esté cortando las consultas por un rato.';
+    }
+    if (status === 400) {
+      return 'Instagram rechazó la consulta (400). Suele arreglarse recargando instagram.com.';
+    }
+    if (status === 401 || status === 403) {
+      return 'Sesión cerrada o sin permiso: volvé a entrar a Instagram.';
+    }
+    if (status === 429) {
+      return 'Instagram pidió esperar: demasiadas consultas seguidas.';
+    }
+    return 'Instagram respondió ' + status + '.';
+  }
+
+  async function pedirJson(url) {
     try {
-      const res = await fetch(
-        `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
-        {
-          headers: { 'X-IG-App-ID': getAppId() },
-          credentials: 'include',
-        }
-      );
-
-      if (res.status === 404) return { ok: false, error: 'El perfil no existe' };
-      if (res.status === 401) return { ok: false, error: 'Sesión cerrada: volvé a entrar a Instagram' };
-      if (res.status === 429) return { ok: false, error: 'Instagram pidió esperar (demasiadas consultas)' };
-      if (!res.ok) return { ok: false, error: `Instagram respondió ${res.status}` };
-
-      const json = await res.json();
-      const u = json?.data?.user;
-      if (!u) return { ok: false, error: 'Respuesta inesperada de Instagram' };
-
-      const posts = (u.edge_owner_to_timeline_media?.edges || [])
-        .slice(0, 9)
-        .map(e => ({
-          imagen: e.node?.thumbnail_src || e.node?.display_url || '',
-          esVideo: !!e.node?.is_video,
-          enlace: e.node?.shortcode ? `https://www.instagram.com/p/${e.node.shortcode}/` : '',
-        }))
-        .filter(p => p.imagen);
-
-      // Gente que vos seguís y también lo sigue: la señal más rápida de si
-      // es del mismo ambiente. Instagram la devuelve con hasta 3 ejemplos.
-      const comun = u.edge_mutual_followed_by || {};
-      const comunEjemplos = (comun.edges || [])
-        .map(e => e.node && e.node.username)
-        .filter(Boolean);
-
-      const perfil = {
-        id: u.id,
-        usuario: u.username || username,
-        nombre: u.full_name || '',
-        bio: u.biography || '',
-        enlaceExterno: u.external_url || '',
-        fotoPerfil: u.profile_pic_url_hd || u.profile_pic_url || '',
-        privado: !!u.is_private,
-        verificado: !!u.is_verified,
-        seguidores: u.edge_followed_by?.count ?? null,
-        siguiendo: u.edge_follow?.count ?? null,
-        publicaciones: u.edge_owner_to_timeline_media?.count ?? null,
-        yaLoSigo: !!u.followed_by_viewer,
-        solicitado: !!u.requested_by_viewer,
-        enComun: Number.isFinite(comun.count) ? comun.count : null,
-        enComunEjemplos: comunEjemplos.slice(0, 3),
-        posts,
-      };
-
-      // Qué dirían los filtros sobre este perfil, para mostrarlo como contexto
-      const textoFiltro = [perfil.nombre, perfil.usuario, perfil.bio, perfil.enlaceExterno].join(' ');
-      perfil.analisis = {
-        cordoba: evaluarPerfil(textoFiltro, {}),
-        edad: evaluarEdad(textoFiltro, {}),
-        fama: evaluarFama({ verificado: perfil.verificado, seguidores: perfil.seguidores }, {}),
-      };
-
-      return { ok: true, perfil };
+      const res = await fetch(url, { headers: cabecerasIg(), credentials: 'include' });
+      if (!res.ok) return { ok: false, status: res.status, error: explicarEstado(res.status) };
+      return { ok: true, status: res.status, json: await res.json() };
     } catch (e) {
-      return { ok: false, error: e?.message || 'Falló la consulta a Instagram' };
+      return { ok: false, status: 0, error: e?.message || 'No se pudo consultar a Instagram' };
     }
   }
+
+  function limpiarUsuario(usuario) {
+    return String(usuario || '').trim().replace(/^@/, '').replace(/\/+$/, '');
+  }
+
+  // Calcula los filtros sobre lo que haya y completa lo que falte
+  function armarPerfil(base) {
+    const perfil = Object.assign({
+      id: null, usuario: '', nombre: '', bio: '', enlaceExterno: '', fotoPerfil: '',
+      privado: false, verificado: false, seguidores: null, siguiendo: null,
+      publicaciones: null, yaLoSigo: false, solicitado: false,
+      enComun: null, enComunEjemplos: [], posts: [], parcial: false, aviso: '',
+    }, base || {});
+
+    const textoFiltro = [perfil.nombre, perfil.usuario, perfil.bio, perfil.enlaceExterno].join(' ');
+    perfil.analisis = {
+      cordoba: evaluarPerfil(textoFiltro, {}),
+      edad: evaluarEdad(textoFiltro, {}),
+      fama: evaluarFama({ verificado: perfil.verificado, seguidores: perfil.seguidores }, {}),
+    };
+    return perfil;
+  }
+
+  // ── Camino principal: el mismo endpoint que usa la web ─────────────────
+
+  async function perfilDesdeWebInfo(username) {
+    const r = await pedirJson(
+      'https://www.instagram.com/api/v1/users/web_profile_info/?username=' + encodeURIComponent(username)
+    );
+    if (!r.ok) return r;
+
+    const u = r.json?.data?.user;
+    if (!u) return { ok: false, status: r.status, error: 'Respuesta inesperada de Instagram' };
+
+    const posts = (u.edge_owner_to_timeline_media?.edges || [])
+      .slice(0, 9)
+      .map(e => ({
+        imagen: e.node?.thumbnail_src || e.node?.display_url || '',
+        esVideo: !!e.node?.is_video,
+        enlace: e.node?.shortcode ? 'https://www.instagram.com/p/' + e.node.shortcode + '/' : '',
+      }))
+      .filter(p => p.imagen);
+
+    // Gente que vos seguís y también lo sigue: la señal más rápida de si
+    // es del mismo ambiente. Instagram la devuelve con hasta 3 ejemplos.
+    const comun = u.edge_mutual_followed_by || {};
+    const comunEjemplos = (comun.edges || [])
+      .map(e => e.node && e.node.username)
+      .filter(Boolean);
+
+    return { ok: true, perfil: armarPerfil({
+      id: u.id,
+      usuario: u.username || username,
+      nombre: u.full_name || '',
+      bio: u.biography || '',
+      enlaceExterno: u.external_url || '',
+      fotoPerfil: u.profile_pic_url_hd || u.profile_pic_url || '',
+      privado: !!u.is_private,
+      verificado: !!u.is_verified,
+      seguidores: u.edge_followed_by?.count ?? null,
+      siguiendo: u.edge_follow?.count ?? null,
+      publicaciones: u.edge_owner_to_timeline_media?.count ?? null,
+      yaLoSigo: !!u.followed_by_viewer,
+      solicitado: !!u.requested_by_viewer,
+      enComun: Number.isFinite(comun.count) ? comun.count : null,
+      enComunEjemplos: comunEjemplos.slice(0, 3),
+      posts,
+    }) };
+  }
+
+  // ── Respaldo 1: el feed del usuario (trae las fotos) ───────────────────
+
+  function fotoDeItem(item) {
+    const fuente = item?.carousel_media?.[0] || item;
+    const candidatas = fuente?.image_versions2?.candidates || [];
+    if (!candidatas.length) return '';
+    // La primera es la más grande; para una grilla alcanza una del medio
+    const media = candidatas.find(c => c.width >= 240 && c.width <= 720);
+    return (media || candidatas[0]).url || '';
+  }
+
+  async function perfilDesdeFeed(username) {
+    const r = await pedirJson(
+      'https://www.instagram.com/api/v1/feed/user/' + encodeURIComponent(username) + '/username/?count=9'
+    );
+    if (!r.ok) return r;
+
+    const items = r.json?.items || [];
+    const u = r.json?.user || items[0]?.user;
+    if (!u) return { ok: false, status: r.status, error: 'El feed no trajo el perfil' };
+
+    const amistad = u.friendship_status || {};
+    return { ok: true, perfil: armarPerfil({
+      id: String(u.pk || u.id || ''),
+      usuario: u.username || username,
+      nombre: u.full_name || '',
+      bio: u.biography || '',
+      fotoPerfil: u.profile_pic_url || '',
+      privado: !!u.is_private,
+      verificado: !!u.is_verified,
+      yaLoSigo: !!amistad.following,
+      solicitado: !!amistad.outgoing_request,
+      posts: items.slice(0, 9)
+        .map(item => ({
+          imagen: fotoDeItem(item),
+          esVideo: item?.media_type === 2,
+          enlace: item?.code ? 'https://www.instagram.com/p/' + item.code + '/' : '',
+        }))
+        .filter(p => p.imagen),
+    }) };
+  }
+
+  // ── Respaldo 2: el buscador (trae el id y la foto de perfil) ───────────
+
+  async function perfilDesdeBusqueda(username) {
+    const r = await pedirJson(
+      'https://www.instagram.com/web/search/topsearch/?context=blended&count=10&query=' +
+      encodeURIComponent(username)
+    );
+    if (!r.ok) return r;
+
+    const buscado = username.toLowerCase();
+    const encontrado = (r.json?.users || [])
+      .map(x => x.user)
+      .find(u => u && String(u.username || '').toLowerCase() === buscado);
+
+    if (!encontrado) return { ok: false, status: r.status, error: 'El buscador no encontró @' + username };
+
+    // El byline del buscador suele decir "1.234 seguidores"
+    const seguidores = numeroDeSeguidores(encontrado.byline || '');
+    const amistad = encontrado.friendship_status || {};
+
+    return { ok: true, perfil: armarPerfil({
+      id: String(encontrado.pk || ''),
+      usuario: encontrado.username || username,
+      nombre: encontrado.full_name || '',
+      fotoPerfil: encontrado.profile_pic_url || '',
+      privado: !!encontrado.is_private,
+      verificado: !!encontrado.is_verified,
+      seguidores: /seguidor|follower/i.test(encontrado.byline || '') ? seguidores : null,
+      yaLoSigo: !!amistad.following,
+      solicitado: !!amistad.outgoing_request,
+    }) };
+  }
+
+  // ── Lo que usa la pantalla de revisión ─────────────────────────────────
+
+  async function getPerfilInfo(usuario) {
+    const username = limpiarUsuario(usuario);
+    if (!username) return { ok: false, error: 'Usuario vacío' };
+
+    const principal = await perfilDesdeWebInfo(username);
+    if (principal.ok) return principal;
+
+    // Si el endpoint principal se cerró para esta cuenta, se arma lo que se
+    // pueda con los otros dos antes de dar el perfil por perdido.
+    const feed = await perfilDesdeFeed(username);
+    const busqueda = await perfilDesdeBusqueda(username);
+
+    if (!feed.ok && !busqueda.ok) {
+      return { ok: false, error: principal.error, status: principal.status };
+    }
+
+    const desdeFeed = feed.ok ? feed.perfil : null;
+    const desdeBusqueda = busqueda.ok ? busqueda.perfil : null;
+
+    const mezcla = armarPerfil({
+      id: desdeFeed?.id || desdeBusqueda?.id || null,
+      usuario: desdeFeed?.usuario || desdeBusqueda?.usuario || username,
+      nombre: desdeFeed?.nombre || desdeBusqueda?.nombre || '',
+      bio: desdeFeed?.bio || '',
+      fotoPerfil: desdeBusqueda?.fotoPerfil || desdeFeed?.fotoPerfil || '',
+      privado: !!(desdeFeed?.privado || desdeBusqueda?.privado),
+      verificado: !!(desdeFeed?.verificado || desdeBusqueda?.verificado),
+      seguidores: desdeBusqueda?.seguidores ?? null,
+      yaLoSigo: !!(desdeFeed?.yaLoSigo || desdeBusqueda?.yaLoSigo),
+      solicitado: !!(desdeFeed?.solicitado || desdeBusqueda?.solicitado),
+      posts: desdeFeed?.posts || [],
+      parcial: true,
+      aviso: 'Instagram no dio los datos completos de este perfil, así que falta ' +
+             'la bio y los números. ' + (principal.error || ''),
+    });
+
+    return { ok: true, perfil: mezcla };
+  }
+
+  // ── Seguir ─────────────────────────────────────────────────────────────
 
   // Seguir con un solo request, igual que el botón de la web.
   async function seguirPorApi(userId) {
@@ -954,20 +1136,15 @@
     if (!csrf) return { ok: false, error: 'No se encontró el token de sesión' };
 
     try {
-      const res = await fetch(`https://www.instagram.com/api/v1/friendships/create/${userId}/`, {
+      const res = await fetch('https://www.instagram.com/api/v1/friendships/create/' + userId + '/', {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': csrf,
-          'X-IG-App-ID': getAppId(),
-          'X-Requested-With': 'XMLHttpRequest',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: cabecerasIg({ 'Content-Type': 'application/x-www-form-urlencoded' }),
         credentials: 'include',
         body: '',
       });
 
       if (res.status === 429) return { ok: false, error: 'Instagram pidió esperar antes de seguir a alguien más' };
-      if (!res.ok) return { ok: false, error: `Instagram respondió ${res.status}` };
+      if (!res.ok) return { ok: false, error: explicarEstado(res.status) };
 
       const json = await res.json();
       // friendship_status.following / outgoing_request según sea público o privado
@@ -981,7 +1158,43 @@
     }
   }
 
-  // <<< API DE INSTAGRAM
+  // Cuando no se pudo leer el perfil no hay id, pero el buscador lo sabe
+  async function seguirAUsuario(usuario, userId) {
+    let id = userId;
+
+    if (!id) {
+      const encontrado = await perfilDesdeBusqueda(limpiarUsuario(usuario));
+      if (encontrado.ok) id = encontrado.perfil.id;
+    }
+
+    if (!id) return { ok: false, error: 'No se pudo averiguar el id de @' + limpiarUsuario(usuario) };
+    return seguirPorApi(id);
+  }
+
+  // Para pegar en la consola cuando algo no anda:
+  //   await __afFiltro.diagnostico('usuario')
+  async function diagnosticarPerfil(usuario) {
+    const username = limpiarUsuario(usuario);
+    const resumen = (r) => (r.ok ? 'ok' : (r.status || 0) + ' · ' + r.error);
+    const [web, feed, busqueda] = await Promise.all([
+      perfilDesdeWebInfo(username),
+      perfilDesdeFeed(username),
+      perfilDesdeBusqueda(username),
+    ]);
+    return {
+      usuario: username,
+      sesion: getCookie('sessionid') ? 'hay cookie de sesión' : 'SIN cookie de sesión',
+      csrf: getCookie('csrftoken') ? 'ok' : 'falta',
+      appId: getAppId(),
+      asbdId: getAsbdId(),
+      wwwClaim: getWwwClaim(),
+      web_profile_info: resumen(web),
+      feed_usuario: resumen(feed),
+      buscador: resumen(busqueda),
+    };
+  }
+
+// <<< API DE INSTAGRAM
 
   // =======================================================================
   // PANEL DE REVISIÓN DENTRO DE INSTAGRAM
@@ -1169,7 +1382,7 @@
     }
 
     if (message.action === 'FOLLOW_BY_API') {
-      seguirPorApi(message.userId).then(sendResponse);
+      seguirAUsuario(message.usuario, message.userId).then(sendResponse);
       return true;
     }
   });

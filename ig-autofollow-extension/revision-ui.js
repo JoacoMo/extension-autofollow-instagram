@@ -160,6 +160,17 @@
     '.af-rev--popup .af-estado { padding: 30px 14px; font-size: 12px; }',
     '.af-rev .af-estado .af-ico { font-size: 40px; display: block; margin-bottom: 12px; }',
     '.af-rev .af-estado b { color: #f0f0f0; }',
+    '.af-rev .af-reintentar { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 16px; }',
+    '.af-rev .af-reintentar button {',
+    '  background: #1f1f23; border: 1px solid #3a3a42; color: #f0f0f0;',
+    '  border-radius: 10px; padding: 9px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;',
+    '}',
+    '.af-rev .af-reintentar button:hover { background: #2a2a31; }',
+    /* La tarjeta se armó con datos sueltos porque Instagram no los dio todos */
+    '.af-rev .af-parcial {',
+    '  background: #2a1a00; color: #e0a800; font-size: 11px; line-height: 1.5;',
+    '  padding: 9px 14px; border-bottom: 1px solid #5a3c00;',
+    '}',
     '.af-rev .af-aviso {',
     '  background: #2a1a00; border: 1px solid #5a3c00; color: #e0a800; border-radius: 10px;',
     '  padding: 10px 13px; font-size: 11.5px; line-height: 1.6; margin-bottom: 12px;',
@@ -397,6 +408,7 @@
 
       el('contenido').innerHTML =
         '<div class="af-card" data-rol="card">' +
+          (p.parcial ? '<div class="af-parcial">⚠️ ' + esc(p.aviso || 'Datos incompletos') + '</div>' : '') +
           '<div class="af-card-header">' +
             '<img class="af-avatar" data-src="' + esc(p.fotoPerfil) + '" alt="" referrerpolicy="no-referrer" data-grande="' + esc(p.fotoPerfil) + '">' +
             '<div class="af-ident">' +
@@ -529,8 +541,14 @@
         perfilActual = { usuario, id: null, soloNombre: true };
 
         mostrarEstado('⚠️', '@' + esc(usuario),
-          esc(motivo) + '<br><br><a data-perfil="1" href="' + esc(urlPerfil(usuario)) + '">' +
-          'Abrir el perfil en Instagram ↗</a>');
+          esc(motivo) +
+          '<div class="af-reintentar"><button data-rol="reintentar">↻ Reintentar</button>' +
+          '<a data-perfil="1" href="' + esc(urlPerfil(usuario)) + '">Abrir en Instagram ↗</a></div>');
+
+        el('reintentar').addEventListener('click', () => {
+          cache.delete(usuario);
+          mostrarActual();
+        });
 
         // Igual se puede descartar o intentar seguir a mano
         el('acciones').hidden = false;

@@ -9,6 +9,7 @@
 
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+  // >>> MOTOR DE FILTROS
   // =======================================================================
   // FILTRO CÓRDOBA — normalización de tipografías raras + matching
   // =======================================================================
@@ -606,6 +607,8 @@
     return Object.assign({ estado: 'ok', min, max }, est);
   }
 
+  // <<< MOTOR DE FILTROS
+
   // Para probar a mano desde la consola de Instagram:
   //   __afFiltro.probar('𝘊𝘣𝘢 | ғᴀᴍᴀꜰ ᴜɴᴄ')
   //   __afFiltro.edad('21 años | Córdoba')
@@ -848,6 +851,7 @@
     return null;
   }
 
+  // >>> API DE INSTAGRAM
   // =======================================================================
   // DATOS DE PERFIL — para la pantalla de revisión
   // =======================================================================
@@ -977,6 +981,8 @@
     }
   }
 
+  // <<< API DE INSTAGRAM
+
   // =======================================================================
   // PANEL DE REVISIÓN DENTRO DE INSTAGRAM
   // =======================================================================
@@ -1009,6 +1015,8 @@
   }
 
   const ESTILOS_PANEL = [
+    // El shadow DOM no hereda el box-sizing de la página
+    '*, *::before, *::after { box-sizing: border-box; }',
     '.caja {',
     '  width: 390px; max-width: calc(100vw - 32px); max-height: min(76vh, 760px);',
     '  overflow-y: auto; background: #0c0c0e; border: 1px solid #26262c;',

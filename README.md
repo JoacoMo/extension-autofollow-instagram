@@ -169,6 +169,36 @@ Lo que sigas desde acá también entra al CSV, con el motivo `aprobado en revisi
 
 > Si el botón flotante te molesta, se apaga en **⚙️ Config → Panel dentro de Instagram**.
 
+---
+
+## Revisar desde el celular
+
+Mirar las fotos se hace más cómodo en el teléfono, pero **Chrome en el celular no soporta extensiones**. La solución es un *userscript*: un solo archivo que corre dentro de instagram.com y monta la misma tarjeta, con los mismos filtros. Está en [`movil/ig-revision.user.js`](movil/ig-revision.user.js).
+
+Es solo la revisión: **el bot se queda en la compu**. Necesita el navegador abierto horas con pausas, y lee botones del Instagram de escritorio que en el celular no existen.
+
+### Instalarlo en el iPhone
+
+1. Instalá **[Userscripts](https://apps.apple.com/app/userscripts/id1463298887)** desde la App Store (gratis y open source).
+2. Abrí **Ajustes → Apps → Safari → Extensiones**, activá *Userscripts* y en instagram.com elegí **Permitir siempre**.
+3. Abrí la app Userscripts una vez y elegí la carpeta donde va a guardar los scripts.
+4. En Safari, abrí el [archivo crudo del userscript](https://raw.githubusercontent.com/JoacoMo/extension-autofollow-instagram/main/movil/ig-revision.user.js), tocá sobre el texto, **Seleccionar todo → Copiar**.
+5. En la app Userscripts tocá **+ → New userscript**, pegá todo y guardá.
+6. Entrá a instagram.com desde Safari: abajo a la derecha aparece **👀 Revisar**.
+
+> En Android es el mismo archivo, con **Firefox + Violentmonkey** en vez de Safari.
+
+### Cómo se usa
+
+1. En la compu, pestaña **📊 Historial → Copiar revisión**, y mandate la lista por WhatsApp o notas.
+2. En el celular tocá **👀 Revisar** y pegala en el cuadro. Acepta comas, saltos de línea, `@` y links de perfil.
+3. Revisá igual que en la compu: foto, bio, publicaciones, seguidores en común y los dos botones.
+4. Cuando termines, **Copiar seguidos** te deja la lista para pegarla en la compu si querés tenerla en el CSV.
+
+La cola queda guardada en el navegador del teléfono, así que podés cerrar Instagram y seguir después.
+
+> **El archivo no se edita a mano.** Lo genera `node movil/construir.js`, que toma el motor de filtros y las llamadas a la API de [`content.js`](ig-autofollow-extension/content.js) y la tarjeta de [`revision-ui.js`](ig-autofollow-extension/revision-ui.js). Así el celular y la compu filtran igual, sin dos copias que se desincronicen.
+
 > El botón verde sigue **al instante**, sin las pausas del bot automático. Como el ritmo lo ponés vos mirando cada perfil, suele ser más lento que el bot — pero no lo uses a toda velocidad.
 
 ---
@@ -234,6 +264,11 @@ ig-autofollow-extension/
 ├── revision.html    Revisión en pestaña completa
 ├── revision.js      Arranque de esa pestaña
 └── icons/
+
+movil/
+├── ig-revision.user.js  Userscript para el celular (generado, no se edita)
+├── revision-movil.js    Arranque del celular: cola en el navegador, pegar lista
+└── construir.js         Arma el userscript con los tramos de la extensión
 ```
 
 ---

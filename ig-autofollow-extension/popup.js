@@ -363,12 +363,16 @@ function filaUsuario(usuario, color, extra) {
   </div>`;
 }
 
+function linkDePerfil(usuario) {
+  return `https://www.instagram.com/${usuario}/`;
+}
+
 document.addEventListener('click', (e) => {
   const el = e.target.closest('.abrir-perfil');
   if (!el) return;
   const usuario = el.dataset.usuario;
   if (!usuario) return;
-  chrome.tabs.create({ url: `https://www.instagram.com/${usuario}/`, active: false });
+  chrome.tabs.create({ url: linkDePerfil(usuario), active: false });
   perfilesAbiertos.add(usuario);
   el.classList.add('visitado');
 });
@@ -494,9 +498,21 @@ document.getElementById('btnVolverRevision').addEventListener('click', () => {
   renderHistorial();
 });
 
+// Links enteros y uno por línea: así se mandan al celular y cada uno se abre
+// de un toque en la app de Instagram.
 document.getElementById('btnCopiarRevision').addEventListener('click', async () => {
   const state = await sendBg('GET_STATE');
-  navigator.clipboard.writeText((state.revision || []).join('\n')).then(() => addLog('📋 Revisión copiada.', '#00ffff'));
+  const usuarios = state.revision || [];
+
+  if (usuarios.length === 0) {
+    addLog('📭 No hay perfiles en revisión.', '#ff9500');
+    return;
+  }
+
+  const links = usuarios.map(linkDePerfil).join('\n');
+  navigator.clipboard.writeText(links).then(() => {
+    addLog(`📋 ${usuarios.length} ${usuarios.length === 1 ? 'link copiado' : 'links copiados'}.`, '#00ffff');
+  });
 });
 
 document.getElementById('btnLimpiarRevision').addEventListener('click', async () => {

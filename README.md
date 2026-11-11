@@ -173,11 +173,31 @@ Lo que sigas desde acá también entra al CSV, con el motivo `aprobado en revisi
 
 ## Revisar desde el celular
 
-Mirar las fotos se hace más cómodo en el teléfono, pero **Chrome en el celular no soporta extensiones**. La solución es un *userscript*: un solo archivo que corre dentro de instagram.com y monta la misma tarjeta, con los mismos filtros. Está en [`movil/ig-revision.user.js`](movil/ig-revision.user.js).
+Mirar los perfiles se hace más cómodo en el teléfono. Hay dos formas, de la más simple a la más armada.
+
+### 1. Mandarte los links (siempre funciona)
+
+En la compu, **📊 Historial → 📱 Copiar links**. Copia la lista así, un link por línea:
+
+```
+https://www.instagram.com/sofi.cba/
+https://www.instagram.com/juanpe/
+https://www.instagram.com/lucia.unc/
+```
+
+Te lo mandás por WhatsApp o lo pegás en una nota, y desde el celular cada línea se abre de un toque en la app de Instagram. Revisás el perfil completo como siempre y seguís a mano a quien te sirva.
+
+No depende de ninguna API: es solo texto. Es la forma que **no se rompe nunca**.
+
+### 2. El userscript (la misma tarjeta que en la compu)
+
+**Chrome en el celular no soporta extensiones**, pero sí hay *userscripts*: un solo archivo que corre dentro de instagram.com y monta la misma tarjeta, con los mismos filtros. Está en [`movil/ig-revision.user.js`](movil/ig-revision.user.js).
+
+> Depende de que la API de Instagram te conteste. Si te aparece seguido el cartel amarillo de datos incompletos o directamente no carga, usá la opción 1: para eso está.
 
 Es solo la revisión: **el bot se queda en la compu**. Necesita el navegador abierto horas con pausas, y lee botones del Instagram de escritorio que en el celular no existen.
 
-### Instalarlo en el iPhone
+#### Instalarlo en el iPhone
 
 1. Instalá **[Userscripts](https://apps.apple.com/app/userscripts/id1463298887)** desde la App Store (gratis y open source).
 2. Abrí **Ajustes → Apps → Safari → Extensiones**, activá *Userscripts* y en instagram.com elegí **Permitir siempre**.
@@ -188,10 +208,10 @@ Es solo la revisión: **el bot se queda en la compu**. Necesita el navegador abi
 
 > En Android es el mismo archivo, con **Firefox + Violentmonkey** en vez de Safari.
 
-### Cómo se usa
+#### Cómo se usa
 
-1. En la compu, pestaña **📊 Historial → Copiar revisión**, y mandate la lista por WhatsApp o notas.
-2. En el celular tocá **👀 Revisar** y pegala en el cuadro. Acepta comas, saltos de línea, `@` y links de perfil.
+1. En la compu, pestaña **📊 Historial → 📱 Copiar links**, y mandate la lista por WhatsApp o notas.
+2. En el celular tocá **👀 Revisar** y pegala en el cuadro. Acepta los links tal cual, y también usuarios sueltos separados por coma o por línea, con `@` o sin.
 3. Revisá igual que en la compu: foto, bio, publicaciones, seguidores en común y los dos botones.
 4. Cuando termines, **Copiar seguidos** te deja la lista para pegarla en la compu si querés tenerla en el CSV.
 

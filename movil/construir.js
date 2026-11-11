@@ -16,7 +16,7 @@ const raiz = path.join(__dirname, '..');
 const EXT = path.join(raiz, 'ig-autofollow-extension');
 const SALIDA = path.join(__dirname, 'ig-revision.user.js');
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 // Saca el texto entre "// >>> NOMBRE" y "// <<< NOMBRE" de content.js
 function tramo(texto, nombre) {

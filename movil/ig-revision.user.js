@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         IG Revisión (celular)
 // @namespace    https://github.com/JoacoMo/extension-autofollow-instagram
-// @version      1.1.0
+// @version      1.2.0
 // @description  Revisa perfil por perfil la cola del bot, desde el celular, sin salir de Instagram
 // @author       JoacoMo
 // @match        https://www.instagram.com/*

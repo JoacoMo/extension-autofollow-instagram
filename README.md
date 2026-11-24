@@ -138,6 +138,17 @@ Aparte del texto, se saltea **toda cuenta verificada** y toda cuenta con más se
 
 Con **"Mandar a revisión si no dice que estudia"** el filtro se pone estricto: ya no alcanza con nombrar Córdoba, tiene que aparecer la facultad, la carrera o que está estudiando.
 
+Ese modo tiene una excepción, **"salvo que sea de otra provincia y viva acá"** (activada): si el perfil nombra otra provincia o su gentilicio *y* Córdoba, se sigue igual aunque no diga que estudia. Alguien que se mudó de Jujuy a Córdoba se vino por algo, y casi siempre es joven y recién llegado.
+
+| Con el modo estricto puesto | Qué pasa |
+|---|---|
+| "Córdoba capital 🌞 \| 24" | 👀 Revisión — no dice que estudie |
+| "Salteña 💜 \| Córdoba capital" | ✅ Seguido — se mudó acá |
+| "instrumentación quirúrgica \| la pampa / cba" | ✅ Seguido — por los dos motivos |
+| "Salteña 💜 \| Carlos Paz" | ⏭️ Saltado — se mudó, pero al interior |
+
+**Nombrar la carrera cuenta como estudiar.** "Medicina Veterinaria", "instrumentación quirúrgica" o "Traductorado" valen igual que "estudiante de". Es necesario porque varias carreras se llaman igual que el título: *veterinaria* y *bioquímica* son las dos cosas, y ante la duda se asume que la está cursando. Los títulos que no dejan lugar a dudas —"Lic.", "Dra.", "Ing.", "recibida", "egresada"— siguen contando como recibido aunque nombren la carrera.
+
 ### Edad
 
 Instagram no expone la edad, así que se **deduce del texto** que escribe la persona:

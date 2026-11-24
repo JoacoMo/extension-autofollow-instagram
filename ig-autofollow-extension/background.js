@@ -32,6 +32,7 @@ const defaultState = {
   familiaActiva: true,         // saltear mamás, papás y gente casada
   profesionActiva: true,       // saltear profesionales ya recibidos
   soloEstudiantes: false,      // true = a revisión si no dice que estudia
+  otraProvincia: true,         // excepción: de otra provincia y vive acá
   vaciarTrasExportar: true,    // no acumular el historial en el navegador
   negocioActivo: true,         // saltear locales, boliches y cuentas comerciales
   negocioExtra: [],            // rubros propios que suma el usuario
@@ -234,6 +235,7 @@ async function procesarSiguiente() {
       familiaActiva: state.familiaActiva !== false,
       profesionActiva: state.profesionActiva !== false,
       soloEstudiantes: state.soloEstudiantes === true,
+      otraProvincia: state.otraProvincia !== false,
     },
   });
 

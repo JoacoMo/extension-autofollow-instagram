@@ -61,6 +61,7 @@ function leerConfigFiltro() {
     familiaActiva: document.getElementById('cfgFamiliaActiva').checked,
     profesionActiva: document.getElementById('cfgProfesionActiva').checked,
     soloEstudiantes: document.getElementById('cfgSoloEstudiantes').checked,
+    otraProvincia: document.getElementById('cfgOtraProvincia').checked,
   };
 }
 
@@ -175,6 +176,7 @@ async function loadState() {
   document.getElementById('cfgFamiliaActiva').checked = state.familiaActiva !== false;
   document.getElementById('cfgProfesionActiva').checked = state.profesionActiva !== false;
   document.getElementById('cfgSoloEstudiantes').checked = state.soloEstudiantes === true;
+  document.getElementById('cfgOtraProvincia').checked = state.otraProvincia !== false;
   setValor('cfgFamosoMaxSeguidores', state.famosoMaxSeguidores || 20000);
 }
 
@@ -323,6 +325,7 @@ document.getElementById('btnGuardarConfig').addEventListener('click', async () =
     familiaActiva: filtro.familiaActiva,
     profesionActiva: filtro.profesionActiva,
     soloEstudiantes: filtro.soloEstudiantes,
+    otraProvincia: filtro.otraProvincia,
   });
   chrome.storage.local.set({ af_state: newState }, () => {
     addLog('💾 Configuración guardada.', '#34c759');

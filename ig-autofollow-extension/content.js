@@ -159,6 +159,28 @@
   // capital ni los fines de semana que importan.
   const TERMINOS_ESTUDIO_INTERIOR = ['unvm', 'unrc'];
 
+  // ── De otra provincia ──────────────────────────────────────────────────
+  // Si nombra otra provincia y además Córdoba, se vino a vivir acá. Casi
+  // siempre es alguien joven que llegó a estudiar o a trabajar, aunque no
+  // lo escriba. Sirve de excepción al modo estricto.
+
+  const TERMINOS_OTRA_PROVINCIA = [
+    'buenos aires', 'caba', 'capital federal', 'catamarca', 'chaco', 'chubut',
+    'corrientes', 'entre rios', 'formosa', 'jujuy', 'la pampa', 'la rioja',
+    'mendoza', 'misiones', 'neuquen', 'rio negro', 'salta', 'san juan',
+    'san luis', 'santa cruz', 'santa fe', 'santiago del estero',
+    'tierra del fuego', 'tucuman', 'patagonia',
+
+    // Gentilicios
+    'porteña', 'porteño', 'jujeña', 'jujeño', 'salteña', 'salteño',
+    'tucumana', 'tucumano', 'mendocina', 'mendocino', 'sanjuanina', 'sanjuanino',
+    'puntana', 'puntano', 'riojana', 'riojano', 'catamarqueña', 'catamarqueño',
+    'santiagueña', 'santiagueño', 'chaqueña', 'chaqueño', 'correntina', 'correntino',
+    'formoseña', 'formoseño', 'entrerriana', 'entrerriano', 'santafesina', 'santafesino',
+    'pampeana', 'pampeano', 'neuquina', 'neuquino', 'rionegrina', 'rionegrino',
+    'chubutense', 'fueguina', 'fueguino', 'marplatense', 'rosarina', 'rosarino',
+  ];
+
   // Córdobas que no son esta: España, México, Colombia
   const TERMINOS_OTRA_CORDOBA = [
     'cordoba españa', 'cordoba spain', 'cordoba andalucia', 'andalucia',
@@ -372,6 +394,7 @@
       cfg.famosoActivo !== false,
       cfg.familiaActiva !== false,
       cfg.profesionActiva !== false,
+      cfg.otraProvincia !== false,
     ]);
     if (cacheFiltro && cacheFiltro.clave === clave) return cacheFiltro;
 
@@ -405,6 +428,7 @@
       interior: compilarLista(TERMINOS_INTERIOR),
       estudioInterior: compilarLista(TERMINOS_ESTUDIO_INTERIOR),
       otraCordoba: compilarLista(TERMINOS_OTRA_CORDOBA),
+      otraProvincia: compilarLista(TERMINOS_OTRA_PROVINCIA),
     };
     return cacheFiltro;
   }
@@ -511,7 +535,13 @@
 
     // Modo estricto: además de la zona, tiene que haber señal de que estudia
     if (cfg.soloEstudiantes === true && !estudioEnLaBio) {
-      return { estado: 'sin_estudio', termino: capital };
+      // Salvo que se haya mudado de provincia: se vino acá por algo
+      const mudado = cfg.otraProvincia === false
+        ? null
+        : buscarTermino(filtro.otraProvincia, textos);
+
+      if (!mudado) return { estado: 'sin_estudio', termino: capital };
+      return { estado: 'cordoba', termino: capital + ', ' + mudado, mudado };
     }
 
     return { estado: 'cordoba', termino: capital, estudia: estudia || null };

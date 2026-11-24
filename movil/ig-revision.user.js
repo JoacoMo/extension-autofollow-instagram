@@ -289,16 +289,21 @@
   // Ojo: "futura abogada" es una estudiante. Por eso estas palabras no
   // cuentan si en el mismo perfil hay alguna señal de que todavía estudia.
 
-  const TERMINOS_PROFESION = [
+  // Títulos: la palabra sola ya dice que terminó. Ni nombrar la carrera los
+  // salva — "Lic. en Nutrición" es una licenciada, no una estudiante.
+  const TERMINOS_TITULO = [
     'recibida', 'recibido', 'egresada', 'egresado', 'graduada', 'graduado',
     'matricula profesional', 'posgrado', 'maestria', 'doctorado', 'mba', 'phd',
-    'residencia medica',
+    'residencia medica', 'licenciada', 'licenciado', 'lic', 'ing', 'dra',
+  ];
+
+  const TERMINOS_PROFESION = [
     'abogada', 'abogado', 'escribana', 'escribano', 'contadora', 'contador',
-    'licenciada', 'licenciado', 'lic', 'ing', 'ingeniera', 'ingeniero',
-    'arquitecta', 'arquitecto', 'dra', 'medica', 'medico', 'cirujano',
+    'ingeniera', 'ingeniero',
+    'arquitecta', 'arquitecto', 'medica', 'medico', 'cirujano',
     'odontologa', 'odontologo', 'psicologa', 'psicologo', 'psicopedagoga',
     'nutricionista', 'kinesiologa', 'kinesiologo', 'fonoaudiologa',
-    'veterinaria', 'veterinario', 'farmaceutica', 'bioquimica', 'bioquimico',
+    'farmaceutica',
     'enfermera', 'enfermero', 'docente', 'profesora', 'profesor', 'maestra',
     'traductora', 'traductor', 'economista', 'martillera', 'terapeuta',
     'consultora', 'consultor', 'asesora', 'asesor', 'coach',
@@ -312,6 +317,27 @@
     'estudiante de', 'estudiante en', 'soy estudiante', 'estudiando',
     'cursando', 'cursada', 'parciales', 'ingresante', 'alumna', 'alumno',
     'futura', 'futuro', 'universitaria', 'universitario', 'facu', 'promo',
+  ];
+
+  // ── Carreras ───────────────────────────────────────────────────────────
+  // Nombrar la carrera es decir que la está cursando. Importa porque varias
+  // se llaman igual que el título: "Medicina Veterinaria" es la carrera,
+  // "veterinaria" a secas también es la profesión. Ante la duda, estudiante.
+  // (El título sin la carrera —"Abogada", "Contadora pública"— sigue
+  // contando como recibido.)
+
+  const CARRERAS = [
+    'medicina veterinaria', 'veterinaria', 'veterinario',
+    'medicina', 'enfermeria', 'obstetricia', 'instrumentacion quirurgica',
+    'kinesiologia', 'fonoaudiologia', 'nutricion', 'odontologia', 'radiologia',
+    'bioquimica', 'biotecnologia', 'farmacia', 'psicologia', 'psicopedagogia',
+    'terapia ocupacional', 'trabajo social',
+    'abogacia', 'notariado', 'ciencia politica', 'relaciones internacionales',
+    'comunicacion social', 'periodismo', 'sociologia', 'antropologia',
+    'arquitectura', 'ingenieria', 'agronomia', 'veterinaria',
+    'contabilidad', 'economia', 'administracion de empresas', 'turismo',
+    'profesorado', 'traductorado', 'licenciatura', 'tecnicatura',
+    'diseño industrial', 'diseño grafico', 'bellas artes',
   ];
 
   // Para el modo estricto también vale nombrar dónde estudia
@@ -383,8 +409,12 @@
       famoso: compilarLista(siActiva(cfg.famosoActivo, TERMINOS_FAMOSO)),
       familia: compilarLista(siActiva(cfg.familiaActiva, TERMINOS_FAMILIA)),
       profesion: compilarLista(siActiva(cfg.profesionActiva, TERMINOS_PROFESION)),
+      titulo: compilarLista(siActiva(cfg.profesionActiva, TERMINOS_TITULO)),
+      // Para la institución solo valen las frases: una facultad no escribe
+      // "estudiante de", pero sí nombra las carreras que dicta.
       estudiante: compilarLista(SENALES_ESTUDIANTE),
-      estudio: compilarLista([...SENALES_ESTUDIANTE, ...TERMINOS_ESTUDIO]),
+      carrera: compilarLista([...SENALES_ESTUDIANTE, ...CARRERAS]),
+      estudio: compilarLista([...SENALES_ESTUDIANTE, ...CARRERAS, ...TERMINOS_ESTUDIO]),
       interior: compilarLista(TERMINOS_INTERIOR),
       estudioInterior: compilarLista(TERMINOS_ESTUDIO_INTERIOR),
       otraCordoba: compilarLista(TERMINOS_OTRA_CORDOBA),
@@ -457,9 +487,12 @@
     const familia = buscarTermino(filtro.familia, textos);
     if (familia) return { estado: 'familia', termino: familia };
 
-    // "futura abogada" es estudiante, "abogada" a secas ya se recibió
-    const profesion = estudia ? null : buscarTermino(filtro.profesion, textos);
-    if (profesion) return { estado: 'profesion', termino: profesion };
+    // "futura abogada" y "Medicina Veterinaria" son estudiantes;
+    // "abogada" o "veterinaria" a secas, sin la carrera, ya se recibió
+    const cursa = estudia || buscarTermino(filtro.carrera, textos);
+    const titulo = estudia ? null : buscarTermino(filtro.titulo, textos);
+    const profesion = cursa ? null : buscarTermino(filtro.profesion, textos);
+    if (titulo || profesion) return { estado: 'profesion', termino: titulo || profesion };
 
     // ── Dónde vive ───────────────────────────────────────────────────────
     // No importa de dónde es: importa si está en la capital. Alguien de

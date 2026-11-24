@@ -224,6 +224,8 @@
     familia: 'Familia',
     profesion: 'Recibido',
     prohibida: 'Palabra prohibida',
+    interior: 'Interior',
+    otra_cordoba: 'Otra Córdoba',
   };
 
   // ── Utilidades ─────────────────────────────────────────────────────────

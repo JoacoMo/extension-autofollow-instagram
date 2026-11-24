@@ -31,9 +31,10 @@ flowchart TD
     B -- sí --> S
     B -- no --> C{¿Institución, figura pública,<br>negocio, familia o recibido?}
     C -- sí --> S
-    C -- no --> D{¿Menciona la zona?}
-    D -- no --> R[👀 Revisión]
-    D -- sí --> E{¿Edad?}
+    C -- no --> I{¿Vive en la capital?}
+    I -- del interior o de otra Córdoba --> S
+    I -- no dice nada de la zona --> R[👀 Revisión]
+    I -- sí --> E{¿Edad?}
     E -- secundario o fuera de 18-26 --> S
     E -- en rango o sin dato --> F{¿Ya lo seguís?}
     F -- sí --> S
@@ -43,8 +44,8 @@ flowchart TD
 | Resultado | Qué significa |
 |---|---|
 | ✅ **Seguido** | Pasó todos los filtros. El log muestra por qué: `Seguido @juan (por "famaf, ~22 años")` |
-| ⏭️ **Saltado** | Se descartó con certeza: institución, figura pública, negocio, familia armada, ya recibido, fuera del rango de edad, o ya lo seguías |
-| 👀 **Revisión** | No se siguió porque no había señal de la zona. Revisalo a mano |
+| ⏭️ **Saltado** | Se descartó con certeza: institución, figura pública, negocio, familia armada, ya recibido, del interior, otra Córdoba, fuera del rango de edad, o ya lo seguías |
+| 👀 **Revisión** | No se siguió porque no había señal clara de la zona. Revisalo a mano |
 | ❌ **Error** | No se pudo cargar el perfil o no apareció el botón Seguir |
 
 ---
@@ -88,7 +89,20 @@ Busca la palabra completa, no fragmentos: `unc` no matchea dentro de "nunca". Vi
 - **Facultades de la UNC**: FAMAF, FCEFyN, FFyH, FCM, FCQ, FCC, FAUD, FCS, FCE, FCA, Lenguas, Odontología
 - **Colegios**: Monserrat, Manuel Belgrano, Carbó
 
-Con **"Incluir interior / Gran Córdoba"** también suma Carlos Paz, Alta Gracia, Villa Allende, Río Cuarto, Villa María, etc.
+#### Lo que importa es dónde vive, no de dónde es
+
+| El perfil dice | Qué pasa | Por qué |
+|---|---|---|
+| "Salteña viviendo en Córdoba" | ✅ **Seguido** | Se mudó acá; de dónde sea da igual |
+| "Córdoba, Argentina" | ✅ **Seguido** | Nombra Córdoba y ningún pueblo: es la capital |
+| "Villa María, Córdoba" | ⏭️ **Saltado** | Del interior y no dice que estudie |
+| "Carlos Paz \| Cba" | ⏭️ **Saltado** | Nombrar Córdoba no alcanza si vive en el interior |
+| "De Río Cuarto 💛 \| FAMAF UNC" | ✅ **Seguido** | Se vino a cursar a la capital |
+| "Villa María \| estudiante de psicología" | 👀 **Revisión** | Estudia, pero no dice dónde: puede ser en su pueblo |
+| "UNRC \| Ingeniería" | ⏭️ **Saltado** | Cursa en el interior, así que vive allá |
+| "Córdoba, España 🇪🇸" | ⏭️ **Saltado** | Es la otra Córdoba |
+
+Con **"Aceptar el interior aunque no estudien acá"** el interior pasa a valer como zona y las cuatro de arriba que dicen Saltado se siguen igual.
 
 En **"Siglas o palabras extra"** agregás las tuyas, una por línea. Terminá una palabra en `*` para aceptar cualquier final: `cordobes*` matchea "cordobesa".
 

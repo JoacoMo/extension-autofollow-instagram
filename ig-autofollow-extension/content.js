@@ -146,8 +146,19 @@
   const TERMINOS_INTERIOR = [
     'carlos paz', 'alta gracia', 'villa allende', 'rio ceballos', 'la calera',
     'saldan', 'malagueño', 'unquillo', 'mendiolaza', 'jesus maria',
-    'unvm', 'villa maria', 'unrc', 'rio cuarto', 'cosquin', 'la falda',
+    'villa maria', 'rio cuarto', 'cosquin', 'la falda', 'capilla del monte',
     'rio tercero', 'san francisco', 'bell ville', 'marcos juarez', 'villa dolores',
+    'arroyito', 'oliva', 'oncativo', 'laboulaye', 'cruz del eje', 'dean funes',
+  ];
+
+  // Universidades del interior: si cursa ahí, vive ahí. No se viene a la
+  // capital ni los fines de semana que importan.
+  const TERMINOS_ESTUDIO_INTERIOR = ['unvm', 'unrc'];
+
+  // Córdobas que no son esta: España, México, Colombia
+  const TERMINOS_OTRA_CORDOBA = [
+    'cordoba españa', 'cordoba spain', 'cordoba andalucia', 'andalucia',
+    'cordoba mexico', 'cordoba veracruz', 'cordoba colombia',
   ];
 
   // ── Señales de que la cuenta es un local, boliche o negocio ────────────
@@ -335,7 +346,9 @@
     if (cacheFiltro && cacheFiltro.clave === clave) return cacheFiltro;
 
     const permitidos = [...TERMINOS_CORDOBA];
-    if (cfg.incluirInterior === true) permitidos.push(...TERMINOS_INTERIOR);
+    if (cfg.incluirInterior === true) {
+      permitidos.push(...TERMINOS_INTERIOR, ...TERMINOS_ESTUDIO_INTERIOR);
+    }
     permitidos.push(...(cfg.extra || []));
 
     const negocio = cfg.negocioActivo === false
@@ -355,6 +368,9 @@
       profesion: compilarLista(siActiva(cfg.profesionActiva, TERMINOS_PROFESION)),
       estudiante: compilarLista(SENALES_ESTUDIANTE),
       estudio: compilarLista([...SENALES_ESTUDIANTE, ...TERMINOS_ESTUDIO]),
+      interior: compilarLista(TERMINOS_INTERIOR),
+      estudioInterior: compilarLista(TERMINOS_ESTUDIO_INTERIOR),
+      otraCordoba: compilarLista(TERMINOS_OTRA_CORDOBA),
     };
     return cacheFiltro;
   }
@@ -400,6 +416,7 @@
     const normal = normalizarTexto(textoCrudo);
     if (!normal) return { estado: 'sin_texto' };
 
+    const cfg = config || {};
     const textos = [normal, colapsarSiglas(normal)];
     const filtro = getFiltroCompilado(config);
 
@@ -427,17 +444,40 @@
     const profesion = estudia ? null : buscarTermino(filtro.profesion, textos);
     if (profesion) return { estado: 'profesion', termino: profesion };
 
-    const permitido = buscarTermino(filtro.permitidos, textos);
-    if (!permitido) return { estado: 'sin_cordoba' };
+    // ── Dónde vive ───────────────────────────────────────────────────────
+    // No importa de dónde es: importa si está en la capital. Alguien de
+    // Salta que vive en Córdoba sirve; alguien de Villa María que nombra
+    // Córdoba pero no estudia acá, no.
 
-    // Modo estricto: además de la zona, tiene que haber señal de que estudia
-    if (config && config.soloEstudiantes === true) {
-      if (!buscarTermino(filtro.estudio, textos)) {
-        return { estado: 'sin_estudio', termino: permitido };
+    // Hay varias Córdobas en el mundo y esta es la de Argentina
+    const ajena = buscarTermino(filtro.otraCordoba, textos);
+    if (ajena) return { estado: 'otra_cordoba', termino: ajena };
+
+    const capital = buscarTermino(filtro.permitidos, textos);
+    const estudioEnLaBio = buscarTermino(filtro.estudio, textos);
+
+    if (cfg.incluirInterior !== true) {
+      // Cursa en una universidad del interior: vive allá
+      const universidadInterior = buscarTermino(filtro.estudioInterior, textos);
+      if (universidadInterior) return { estado: 'interior', termino: universidadInterior };
+
+      const interior = buscarTermino(filtro.interior, textos);
+      if (interior) {
+        // Del interior y no dice que estudie: se queda en su pueblo
+        if (!estudioEnLaBio) return { estado: 'interior', termino: interior };
+        // Estudia, pero sin nombrar nada de la capital no se sabe dónde
+        if (!capital) return { estado: 'sin_cordoba' };
       }
     }
 
-    return { estado: 'cordoba', termino: permitido, estudia: estudia || null };
+    if (!capital) return { estado: 'sin_cordoba' };
+
+    // Modo estricto: además de la zona, tiene que haber señal de que estudia
+    if (cfg.soloEstudiantes === true && !estudioEnLaBio) {
+      return { estado: 'sin_estudio', termino: capital };
+    }
+
+    return { estado: 'cordoba', termino: capital, estudia: estudia || null };
   }
 
   // ── Figura pública por números, no por texto ───────────────────────────
@@ -780,6 +820,12 @@
       }
       if (evaluacion.estado === 'profesion') {
         return { resultado: 'saltado', razon: `Ya recibido: "${evaluacion.termino}"` };
+      }
+      if (evaluacion.estado === 'interior') {
+        return { resultado: 'saltado', razon: `Del interior y no estudia acá: "${evaluacion.termino}"` };
+      }
+      if (evaluacion.estado === 'otra_cordoba') {
+        return { resultado: 'saltado', razon: `Es otra Córdoba: "${evaluacion.termino}"` };
       }
       if (evaluacion.estado === 'sin_cordoba') {
         return { resultado: 'revision', razon: 'No menciona Córdoba en la bio/nombre' };

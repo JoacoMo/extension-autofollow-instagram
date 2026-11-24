@@ -143,12 +143,16 @@
   ];
 
   // Interior / Gran Córdoba: apagado por defecto porque no es capital.
+  // Ojo al agregar: estos términos se buscan también en el nombre de la
+  // persona. Quedaron afuera "Oliva" y "Marcos Juárez" (son apellidos) y
+  // "Oncativo" y "Deán Funes" (son calles de la capital): marcaban como del
+  // interior a gente que vive acá.
   const TERMINOS_INTERIOR = [
     'carlos paz', 'alta gracia', 'villa allende', 'rio ceballos', 'la calera',
     'saldan', 'malagueño', 'unquillo', 'mendiolaza', 'jesus maria',
     'villa maria', 'rio cuarto', 'cosquin', 'la falda', 'capilla del monte',
-    'rio tercero', 'san francisco', 'bell ville', 'marcos juarez', 'villa dolores',
-    'arroyito', 'oliva', 'oncativo', 'laboulaye', 'cruz del eje', 'dean funes',
+    'rio tercero', 'san francisco', 'bell ville', 'villa dolores',
+    'laboulaye', 'cruz del eje',
   ];
 
   // Universidades del interior: si cursa ahí, vive ahí. No se viene a la
